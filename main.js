@@ -26,6 +26,7 @@ let currentChat = [{
     "role": "user",
     "content": "привет",
 }];
+let additionalData = "";
 
 const groq = new Groq({
     apiKey: "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"
@@ -84,6 +85,8 @@ async function StartAI(chatt = [], socket, question) {
         socket.emit('ai_answer_chunk', clearResult);
     }
 
+    socket.emit('ai_answer-ready');
+
     const clearResult = removeUndefined(finalResult);
 
     lastAnswer = clearResult;
@@ -113,8 +116,20 @@ io.on('connection', async (socket) => {
     lastChat = currentChat;
 
     socket.on('question', async (data) => {
+        if (currentChat.length > 10)
+        {
+            currentChat.slice(currentChat.length - 1, 1);
+        }
+        currentChat.splice(currentChat.length - 1, 0, {
+            "role": "system",
+            "content": additionalData,
+        })
         await StartAI(currentChat, socket, data);
         console.log(data);
+    });
+
+    socket.on('set-additional-data', async (data) => {
+        additionalData = data;
     });
 
     socket.on('disconnect', () => {
