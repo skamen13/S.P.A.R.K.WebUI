@@ -3,6 +3,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const WebSocket = require('ws');
 const gpt = require('gpt4all');
+const path = require('path');
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
@@ -16,8 +17,8 @@ function removeUndefined(str) {
     return str.replace(regex, '');
 }
 
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json()); // Добавлено для парсинга JSON в теле запроса
-app.use(express.static('./public'));
 
 let model;
 let pythonSocket;
