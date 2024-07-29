@@ -184,7 +184,7 @@ function removeTextInAsterisks(input) {
     const cleanedText = input.replace(regex, '');
 
     return {
-        cleanedText: cleanedText,
+        cleanedText: input,
         removedTexts: matches
     };
 }
