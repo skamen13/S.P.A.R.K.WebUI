@@ -1,39 +1,29 @@
-const axios = require('axios');
+const fetch = require('node-fetch');
+const cheerio = require('cheerio');
 
-const fs = require('fs');
-const path = require('path');
+async function searchQuestion(question) {
+    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(question)}`;
+    try {
+        const response = await fetch(searchUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36',
+            },
+        });
+        const html = await response.text();
 
-// helper function to help you convert your local images into base64 format
-async function toB64(imgPath) {
-    const data = fs.readFileSync(path.resolve(imgPath));
-    return Buffer.from(data).toString('base64');
+        // Используем cheerio для парсинга HTML
+        const $ = cheerio.load(html);
+        const snippets = [];
+        $('.BNeawe').each((i, el) => {
+            snippets.push($(el).text());
+        });
+
+        return snippets.slice(0, 5); // Вернуть первые 5 результатов
+    } catch (error) {
+        console.error('Error searching question:', error);
+        return [];
+    }
 }
 
-const api_key = "SG_699bf3899a9c9d5c";
-const url = "https://api.segmind.com/v1/llava-13b";
-
-const data = {
-    "messages": [
-        {
-            "role": "user",
-            "content" : "tell me a joke on cats"
-        },
-        {
-            "role": "assistant",
-            "content" : "here is a joke about cats..."
-        },
-        {
-            "role": "user",
-            "content" : "now a joke on dogs"
-        },
-    ]
-};
-
-(async function() {
-    try {
-        const response = await axios.post(url, data, { headers: { 'x-api-key': api_key } });
-        console.log('Answer:', response.data.choices[0].message.get(''));
-    } catch (error) {
-        console.error('Error:', error.response.data);
-    }
-})();
+// Пример использования
+searchQuestion('Какое расстояние до Луны?').then(results => console.log(results));

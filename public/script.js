@@ -2,6 +2,7 @@ const socket = io();
 let messageElement;
 
 let isAnswerReady = false;
+let isConversationMode = false;
 
 const input = document.getElementById('message-input');
 const sendButton = document.getElementById('send-button');
@@ -9,6 +10,8 @@ const micButton = document.getElementById('mic-button');
 const visualizerContainer = document.getElementById('visualizer-container');
 const visualizer = document.getElementById('visualizer');
 const chatHistory = document.getElementById('chat-history');
+const subtitleContainer = document.getElementById('subtitle-container');
+const subtitleText = document.getElementById('subtitle-text');
 
 let audioContext, analyser, dataArray, source;
 
@@ -30,15 +33,6 @@ socket.on('user_input_bubble', (msg) => {
     displayMessage(msg, 'user');
 });
 
-input.addEventListener('input', () => {
-    if (input.value.trim() === '') {
-        sendButton.style.display = 'none';
-        micButton.style.display = 'block';
-    } else {
-        sendButton.style.display = 'block';
-        micButton.style.display = 'none';
-    }
-});
 
 micButton.addEventListener('click', () => {
     if (visualizerContainer.style.display === 'none') {
@@ -48,20 +42,22 @@ micButton.addEventListener('click', () => {
     }
 });
 
-sendButton.addEventListener('click', () => {
-    sendMessage();
+sendButton.addEventListener('click', async () => {
+    await sendMessage();
 });
 
-input.addEventListener('keypress', (event) => {
+input.addEventListener('keypress', async (event) => {
     if (event.key === 'Enter') {
-        sendMessage();
+        await sendMessage();
     }
 });
 
 function startVisualizer() {
+    isConversationMode = true;
+    socket.emit('set-conversational-mode', isConversationMode);
     visualizerContainer.style.display = 'block';
     input.style.display = 'none';
-    micButton.textContent = '❌';
+    micButton.style.display = 'none';
 
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioContext.createAnalyser();
@@ -73,12 +69,14 @@ function startVisualizer() {
         .then(stream => {
             source = audioContext.createMediaStreamSource(stream);
             source.connect(analyser);
-            drawVisualizer();
+
         })
         .catch(err => console.log(err));
 }
 
 function stopVisualizer() {
+    isConversationMode = false;
+    socket.emit('set-conversational-mode', isConversationMode);
     visualizerContainer.style.display = 'none';
     input.style.display = 'block';
     micButton.textContent = '🎤';
@@ -96,7 +94,7 @@ function drawVisualizer() {
     let maxAmplitude = 0;
     const smoothingFactor = 0.3; // Коэффициент сглаживания для автоматической регулировки
     const strengthFactors = [0.5, 2.5, 1.5]; // Переменные для регулировки силы колебаний для каждой линии
-    const colors = ['rgb(0,119,0)', 'rgb(0,80,173)', 'rgb(199,5,59)']; // Цвета для каждой линии
+    const colors = ['rgb(97,0,119)', 'rgb(0,80,173)', 'rgb(5,199,176)']; // Цвета для каждой линии
 
     function draw() {
         requestAnimationFrame(draw);
@@ -146,8 +144,8 @@ function drawVisualizer() {
     draw();
 }
 
-function sendMessage() {
-    const message = input.value.trim();
+async function sendMessage() {
+    let message = input.value.trim();
     if (message) {
         displayMessage(message, 'user');
         socket.emit('question', message);
@@ -187,4 +185,67 @@ function removeTextInAsterisks(input) {
         cleanedText: input,
         removedTexts: matches
     };
+}
+
+
+function showUserSubtitle(text) {
+    subtitleText.style.color = '#3a96ff';
+    subtitleText.textContent = text;
+    subtitleContainer.classList.remove('hidden');
+    subtitleContainer.classList.add('fadeIn');
+    setTimeout(() => {
+        subtitleContainer.classList.remove('fadeIn');
+    }, 300); // Длительность анимации
+}
+
+function showSparkSubtitle(text) {
+    subtitleText.style.color = '#ffa43a';
+    subtitleText.textContent = text;
+    subtitleContainer.classList.remove('hidden');
+    subtitleContainer.classList.add('fadeIn');
+    setTimeout(() => {
+        subtitleContainer.classList.remove('fadeIn');
+    }, 300); // Длительность анимации
+}
+
+function hideSubtitle() {
+    subtitleContainer.classList.add('hidden');
+}
+
+showUserSubtitle("Пример субтитра");
+
+async function searchQuestion(question) {
+    // Формируем URL для запроса в Google
+    const url = `https://www.google.com/search?q=${encodeURIComponent(question)}`;
+
+    try {
+        // Делаем запрос к Google
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
+
+        // Проверяем успешность запроса
+        if (response.ok) {
+            const text = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+
+            // Извлекаем цитаты из результатов поиска
+            const snippets = doc.querySelectorAll('.BNeawe.s3v9rd.AP7Wnd');
+
+            // Если найдены цитаты, возвращаем первую
+            if (snippets.length > 0) {
+                return snippets[0].textContent;
+            } else {
+                return "Ответ не найден";
+            }
+        } else {
+            return "Ошибка при выполнении запроса";
+        }
+    } catch (error) {
+        return `Ошибка: ${error.message}`;
+    }
 }

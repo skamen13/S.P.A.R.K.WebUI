@@ -28,6 +28,7 @@ let currentChat = [{
     "content": "привет",
 }];
 let additionalData = "";
+let ConversationalMode = false;
 
 const groq = new Groq({
     apiKey: "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"
@@ -131,6 +132,10 @@ io.on('connection', async (socket) => {
 
     socket.on('set-additional-data', async (data) => {
         additionalData = data;
+    });
+
+    socket.on('set-conversational-mode', async (data) => {
+        ConversationalMode = data;
     });
 
     socket.on('disconnect', () => {

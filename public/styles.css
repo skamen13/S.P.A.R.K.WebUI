@@ -13,7 +13,7 @@ body {
     display: flex;
     flex-direction: column;
     width: 400px;
-    height: 600px;
+    height: 700px;
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
@@ -57,6 +57,7 @@ body {
     padding: 10px;
     border-radius: 50%;
     cursor: pointer;
+    margin-right: 40px;
     transition: background-color 0.3s;
 }
 
@@ -128,7 +129,7 @@ body {
 
 #visualizer-container {
     width: 100%;
-    height: 50px;
+    height: 20%;
     background-color: #333;
     display: flex;
     justify-content: center;
@@ -140,3 +141,32 @@ body {
     height: 50px;
 }
 
+#subtitle-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    background-color: rgba(34, 34, 34, 0);
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+#subtitle-text {
+    font-size: 18px;
+    color: #fff;
+    font-family: "Ubuntu Mono", monospace;
+    text-align: center;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
