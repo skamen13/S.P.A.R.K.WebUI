@@ -3,10 +3,10 @@ let messageElement;
 
 let isAnswerReady = false;
 let isConversationMode = false;
+let lastAnswer = "";
 
 const input = document.getElementById('message-input');
 const sendButton = document.getElementById('send-button');
-const micButton = document.getElementById('mic-button');
 const visualizerContainer = document.getElementById('visualizer-container');
 const visualizer = document.getElementById('visualizer');
 const chatHistory = document.getElementById('chat-history');
@@ -23,8 +23,9 @@ socket.on('ai_answer', (msg) => {
     displayMessage(msg, 'ai');
 });
 
-socket.on('ai_answer-ready', (msg) => {
+socket.on('ai_answer-ready', async (msg) => {
     isAnswerReady = true;
+    await displayMessage(msg, 'ai', false, true);
     console.log("answer is ready for tts")
 });
 
@@ -34,13 +35,6 @@ socket.on('user_input_bubble', (msg) => {
 });
 
 
-micButton.addEventListener('click', () => {
-    if (visualizerContainer.style.display === 'none') {
-        startVisualizer();
-    } else {
-        stopVisualizer();
-    }
-});
 
 sendButton.addEventListener('click', async () => {
     await sendMessage();
@@ -57,7 +51,6 @@ function startVisualizer() {
     socket.emit('set-conversational-mode', isConversationMode);
     visualizerContainer.style.display = 'block';
     input.style.display = 'none';
-    micButton.style.display = 'none';
 
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioContext.createAnalyser();
@@ -79,7 +72,6 @@ function stopVisualizer() {
     socket.emit('set-conversational-mode', isConversationMode);
     visualizerContainer.style.display = 'none';
     input.style.display = 'block';
-    micButton.textContent = '🎤';
 
     if (audioContext) {
         audioContext.close();
@@ -151,22 +143,25 @@ async function sendMessage() {
         socket.emit('question', message);
         input.value = '';
         sendButton.style.display = 'none';
-        micButton.style.display = 'block';
     }
 }
 
-function displayMessage(message, sender, newMessage = true) {
+async function displayMessage(message, sender, newMessage = true, isFinal = false) {
     if (newMessage) {
         messageElement = document.createElement('div');
         messageElement.classList.add('message', sender);
-        const result = removeTextInAsterisks(message);
+        let result = removeTextInAsterisks(message);
+        if (isFinal) result = await processText(message);
         messageElement.textContent = result.cleanedText;
         chatHistory.appendChild(messageElement);
+        lastAnswer = result.cleanedText
         chatHistory.scrollTop = chatHistory.scrollHeight;
     } else {
-        const result = removeTextInAsterisks(message);
+        let result = removeTextInAsterisks(message);
+        if (isFinal) result = await processText(message);
         messageElement.textContent = result.cleanedText;
         chatHistory.scrollTop = chatHistory.scrollHeight;
+        lastAnswer = result.cleanedText
     }
 }
 
@@ -247,5 +242,34 @@ async function searchQuestion(question) {
         }
     } catch (error) {
         return `Ошибка: ${error.message}`;
+    }
+}
+
+
+async function processText(text) {
+    // Удаляем все слова в звёздочках и скобках
+    text = text.replace(/(\*.*?\*)|(\(.*?\))|(\[.*?\])/g, "");
+
+    // Удаляем все звёздочки, кавычки и скобки
+    text = text.replace(/[\*"'\(\)\[\]]/g, "");
+
+    // Переводим текст на русский язык
+    text = await translateToRussian(text);
+
+    return {
+        cleanedText: text
+    };
+}
+
+async function translateToRussian(text) {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ru`;
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        return data.responseData.translatedText;
+    } catch (error) {
+        console.error("Ошибка перевода:", error);
+        return text; // Возвращаем оригинальный текст в случае ошибки
     }
 }

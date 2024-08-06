@@ -1,29 +1,32 @@
-const fetch = require('node-fetch');
-const cheerio = require('cheerio');
+async function processText(text) {
+    // Удаляем все слова в звёздочках и скобках
+    text = text.replace(/(\*.*?\*)|(\(.*?\))|(\[.*?\])/g, "");
 
-async function searchQuestion(question) {
-    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(question)}`;
+    // Удаляем все звёздочки, кавычки и скобки
+    text = text.replace(/[\*"'\(\)\[\]]/g, "");
+
+    // Переводим текст на русский язык
+    text = await translateToRussian(text);
+
+    return text;
+}
+
+async function translateToRussian(text) {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ru`;
+
     try {
-        const response = await fetch(searchUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36',
-            },
-        });
-        const html = await response.text();
-
-        // Используем cheerio для парсинга HTML
-        const $ = cheerio.load(html);
-        const snippets = [];
-        $('.BNeawe').each((i, el) => {
-            snippets.push($(el).text());
-        });
-
-        return snippets.slice(0, 5); // Вернуть первые 5 результатов
+        const response = await fetch(url);
+        const data = await response.json();
+        return data.responseData.translatedText;
     } catch (error) {
-        console.error('Error searching question:', error);
-        return [];
+        console.error("Ошибка перевода:", error);
+        return text; // Возвращаем оригинальный текст в случае ошибки
     }
 }
 
 // Пример использования
-searchQuestion('Какое расстояние до Луны?').then(results => console.log(results));
+(async () => {
+    const originalText = "This is an example with *stars*, (parentheses), and [brackets].";
+    const processedText = await processText(originalText);
+    console.log(processedText);
+})();
