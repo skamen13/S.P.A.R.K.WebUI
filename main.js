@@ -61,6 +61,13 @@ async function StartAI(chatt = [], socket, question) {
     let response = '';
     let finalResult = '';
 
+    currentChat.push(
+        {
+            "role": "user",
+            "content": question
+        },
+    );
+
     const chatCompletion = await groq.chat.completions.create({
         "messages": [
             {
@@ -99,10 +106,6 @@ async function StartAI(chatt = [], socket, question) {
     lastAnswer = clearResult;
 
     currentChat.push(
-        {
-            "role": "user",
-            "content": question
-        },
         {
             "role": "assistant",
             "content": clearResult
