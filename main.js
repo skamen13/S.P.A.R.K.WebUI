@@ -84,7 +84,7 @@ async function StartAI(chatt = [], socket, question) {
                 "content": question,
             }
         ],
-        "model": "llama3-groq-70b-8192-tool-use-preview",
+        "model": "llama-3.1-70b-versatile",
         "temperature": 1,
         "max_tokens": 1024,
         "top_p": 0.4,
