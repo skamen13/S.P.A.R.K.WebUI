@@ -142,7 +142,6 @@ async function sendMessage() {
         displayMessage(message, 'user');
         socket.emit('question', message);
         input.value = '';
-        sendButton.style.display = 'none';
     }
 }
 

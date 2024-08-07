@@ -20,7 +20,7 @@ function removeUndefined(str) {
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json()); // Добавлено для парсинга JSON в теле запроса
 
-let model;
+let model = "llama-3.1-70b-versatile";
 let pythonSocket;
 let lastAnswer = '';
 let currentChat = [{
@@ -84,7 +84,7 @@ async function StartAI(chatt = [], socket, question) {
                 "content": question,
             }
         ],
-        "model": "llama-3.1-70b-versatile",
+        "model": model,
         "temperature": 1,
         "max_tokens": 1024,
         "top_p": 0.4,
@@ -136,6 +136,10 @@ io.on('connection', async (socket) => {
 
     socket.on('set-data', async (data) => {
         mainData = data;
+    });
+
+    socket.on('switch-model', async (data) => {
+        model = data;
     });
 
     socket.on('set-additional-data', async (data) => {
