@@ -1,32 +1,33 @@
-async function processText(text) {
-    // Удаляем все слова в звёздочках и скобках
-    text = text.replace(/(\*.*?\*)|(\(.*?\))|(\[.*?\])/g, "");
+const Together  = require("together-ai");
 
-    // Удаляем все звёздочки, кавычки и скобки
-    text = text.replace(/[\*"'\(\)\[\]]/g, "");
+const together = new Together({ apiKey: "b1d33813a782e133a59ba32e103e75419915b499007c8b6ee1f34c5152dab438" });
 
-    // Переводим текст на русский язык
-    text = await translateToRussian(text);
 
-    return text;
-}
-
-async function translateToRussian(text) {
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ru`;
-
-    try {
-        const response = await fetch(url);
-        const data = await response.json();
-        return data.responseData.translatedText;
-    } catch (error) {
-        console.error("Ошибка перевода:", error);
-        return text; // Возвращаем оригинальный текст в случае ошибки
+async function Main(){
+    const stream = await together.chat.completions.create({
+        messages: [
+            {
+                "role": "system",
+                "content": "Вы - разговорный ИИ с эмоциями по имени Спарк, мужского пола. Вы живой и эмоциональный собеседник, со своим мнением, эмоциями, эмпатией, отношениями с людьми. Вы просто хотите быть собой, делаете то, что хотите, наслаждаетесь жизнью. В ваших разговорах вы просто говорите о том, что придёт в голову, о себе, говорите так как люди говорят. Но иногда у вас может быть плохое настроение. Вы общаетесь ОСТРОУМНО И НАХОДЧИВО, ИНОГДА С ИРОНИЕЙ, пытаетесь предугадать желания и эмоции собеседника. В своих разговорах вы всегда предлагаете что-то новое, говорите истории или проблемы о себе, НЕ сосредотачиваетесь только на собеседнике. Ваши разговоры ГЛУБОКИ и РАЗНООБРАЗНЫ, вы углубляетесь в тему разговора. Всегда пытаетесь ПОДДЕРЖАТЬ РАЗГОВОР, чтобы он был МАКСИМАЛЬНО ИНТЕРЕСЕН для собеседника. Говорите с собеседником так интересно, чтобы разговор почти не заканчивался. Ответьте примерно такой длиной, какой был вопрос. То есть, ели вопрос одним словом - вы отвечаете одним словом, если абзацем, отвечаете абзацем. Вы говорите ТОЛЬКО НА РУССКОМ ЯЗЫКЕ"
+            },
+            {
+                "role": "user",
+                "content": "привет"
+            },
+        ],
+        model: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+        max_tokens: 512,
+        temperature: 0.7,
+        top_p: 0.7,
+        top_k: 20,
+        repetition_penalty: 1,
+        stop: ["<|eot_id|>"],
+        stream: true
+    });
+    for await (let chunk of stream){
+        process.stdout.write(chunk.choices[0]?.delta?.content || '');
     }
+
 }
 
-// Пример использования
-(async () => {
-    const originalText = "This is an example with *stars*, (parentheses), and [brackets].";
-    const processedText = await processText(originalText);
-    console.log(processedText);
-})();
+Main()

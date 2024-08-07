@@ -8,6 +8,12 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 const Groq = require('groq-sdk');
+const axios = require('axios');
+const Together = require("together-ai");
+
+const togetherApiKey = 'b1d33813a782e133a59ba32e103e75419915b499007c8b6ee1f34c5152dab438';
+
+const together = new Together({ apiKey: togetherApiKey });
 
 function removeUndefined(str) {
     // Регулярное выражение для поиска слова "undefined" независимо от регистра
@@ -20,7 +26,7 @@ function removeUndefined(str) {
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json()); // Добавлено для парсинга JSON в теле запроса
 
-let model = "llama-3.1-70b-versatile";
+let model = "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo";
 let pythonSocket;
 let lastAnswer = '';
 let currentChat = [{
@@ -68,7 +74,7 @@ async function StartAI(chatt = [], socket, question) {
         },
     );
 
-    const chatCompletion = await groq.chat.completions.create({
+    const chatCompletion = await together.chat.completions.create({
         "messages": [
             {
                 "role": "system",
