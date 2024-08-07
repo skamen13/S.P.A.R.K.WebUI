@@ -151,7 +151,7 @@ io.on('connection', async (socket) => {
     socket.on('set-additional-data', async (data) => {
         currentChat.push(
             {
-                "role": "system",
+                "role": "user",
                 "content": data
             }
         );
