@@ -272,3 +272,5 @@ async function translateToRussian(text) {
         return text; // Возвращаем оригинальный текст в случае ошибки
     }
 }
+
+

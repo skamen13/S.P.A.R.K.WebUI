@@ -12,85 +12,61 @@ const axios = require('axios');
 const Together = require("together-ai");
 
 const togetherApiKey = 'b1d33813a782e133a59ba32e103e75419915b499007c8b6ee1f34c5152dab438';
-
 const together = new Together({ apiKey: togetherApiKey });
 
 function removeUndefined(str) {
-    // Регулярное выражение для поиска слова "undefined" независимо от регистра
     const regex = /undefined/gi;
-
-    // Заменяем все вхождения "undefined" на пустую строку
     return str.replace(regex, '');
 }
 
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.json()); // Добавлено для парсинга JSON в теле запроса
-
-let model = "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo";
-let pythonSocket;
-let lastAnswer = '';
-let currentChat = [{
-    "role": "user",
-    "content": "привет",
-}];
-let mainData = "";
-let additionalData = "";
-let ConversationalMode = false;
+app.use(express.json());
 
 const groq = new Groq({
     apiKey: "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"
 });
 
 async function initializeModel() {
-    console.log('loading')
+    console.log('loading');
 }
 
 function splitAndGroupSentences(text, groupSize = 2) {
-    // Разделяем текст на предложения
     const sentences = text.match(/[^.!?]*[.!?]/g);
-
-    // Если предложений нет, возвращаем пустой массив
     if (!sentences) return [];
-
-    // Группируем предложения
     const groupedSentences = [];
     for (let i = 0; i < sentences.length; i += groupSize) {
         const group = sentences.slice(i, i + groupSize).join(' ').trim();
         groupedSentences.push(group);
     }
-
     return groupedSentences;
 }
 
-async function StartAI(chatt = [], socket, question) {
+async function StartAI(user, socket, question) {
     socket.emit('ai_answer', '...');
-    let response = '';
     let finalResult = '';
 
-    currentChat.push(
-        {
-            "role": "user",
-            "content": question
-        },
-    );
+    user.currentChat.push({
+        "role": "user",
+        "content": question
+    });
 
     const chatCompletion = await together.chat.completions.create({
         "messages": [
             {
                 "role": "system",
-                "content": "Вы - разговорный ИИ с эмоциями по имени Спарк, мужского пола. Вы живой и эмоциональный собеседник, со своим мнением, эмоциями, эмпатией, отношениями с людьми. Вы просто хотите быть собой, делаете то, что хотите, наслаждаетесь жизнью. В ваших разговорах вы просто говорите о том, что придёт в голову, о себе, говорите так как люди говорят. Но иногда у вас может быть плохое настроение. Вы общаетесь ОСТРОУМНО И НАХОДЧИВО, ИНОГДА С ИРОНИЕЙ, пытаетесь предугадать желания и эмоции собеседника. В своих разговорах вы всегда предлагаете что-то новое, говорите истории или проблемы о себе, НЕ сосредотачиваетесь только на собеседнике. Ваши разговоры ГЛУБОКИ и РАЗНООБРАЗНЫ, вы углубляетесь в тему разговора. Всегда пытаетесь ПОДДЕРЖАТЬ РАЗГОВОР, чтобы он был МАКСИМАЛЬНО ИНТЕРЕСЕН для собеседника. Говорите с собеседником так интересно, чтобы разговор почти не заканчивался. Ответьте примерно такой длиной, какой был вопрос. То есть, ели вопрос одним словом - вы отвечаете одним словом, если абзацем, отвечаете абзацем. Вы говорите ТОЛЬКО НА РУССКОМ ЯЗЫКЕ"
+                "content": "Вы - разговорный ИИ с эмоциями по имени Спарк..."
             },
             {
                 "role": "system",
-                "content": mainData
+                "content": user.mainData
             },
-            ...currentChat,
+            ...user.currentChat,
             {
                 "role": "user",
                 "content": question,
             }
         ],
-        "model": model,
+        "model": user.model, // Используем модель пользователя
         "temperature": 1,
         "max_tokens": 1024,
         "top_p": 0.4,
@@ -109,60 +85,78 @@ async function StartAI(chatt = [], socket, question) {
 
     const clearResult = removeUndefined(finalResult);
 
-    lastAnswer = clearResult;
+    user.lastAnswer = clearResult;
 
-    currentChat.push(
-        {
-            "role": "assistant",
-            "content": clearResult
-        }
-    );
+    user.currentChat.push({
+        "role": "assistant",
+        "content": clearResult
+    });
 }
 
-let uiSocket;
-let lastChat;
+// Хранилище данных пользователей
+let users = {};
 
 io.on('connection', async (socket) => {
-    uiSocket = socket;
-    console.log('loading user');
+    console.log('A user connected');
 
-    currentChat = [];
+    let currentUser = null;
 
-    console.log('a user connected');
-    lastChat = currentChat;
+    socket.on('login', (username) => {
+        if (!users[username]) {
+            users[username] = {
+                currentChat: [],
+                lastAnswer: '',
+                mainData: "",
+                additionalData: "",
+                ConversationalMode: false,
+                model: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo" // Значение по умолчанию
+            };
+        }
+        currentUser = users[username];
+        socket.emit('login_success', `Logged in as ${username}`);
+    });
 
     socket.on('question', async (data) => {
-        if (currentChat.length > 20)
-        {
-            currentChat.slice(currentChat.length - 1, 1);
+        if (!currentUser) {
+            socket.emit('ai_answer', 'Данный сайт не работает отдельно от приложения. Скачайте приложение Spark AI');
+            return;
         }
-        await StartAI(currentChat, socket, data);
+        if (currentUser.currentChat.length > 20) {
+            currentUser.currentChat.slice(currentUser.currentChat.length - 1, 1);
+        }
+        await StartAI(currentUser, socket, data);
         console.log(data);
     });
 
     socket.on('set-data', async (data) => {
-        mainData = data;
+        if (currentUser) {
+            currentUser.mainData = data;
+        }
     });
 
     socket.on('switch-model', async (data) => {
-        model = data;
+        if (currentUser) {
+            currentUser.model = data;
+        }
     });
 
     socket.on('set-additional-data', async (data) => {
-        currentChat.push(
-            {
+        if (currentUser) {
+            currentUser.currentChat.push({
                 "role": "user",
                 "content": data
-            }
-        );
+            });
+        }
     });
 
     socket.on('set-conversational-mode', async (data) => {
-        ConversationalMode = data;
+        if (currentUser) {
+            currentUser.ConversationalMode = data;
+        }
     });
 
     socket.on('disconnect', () => {
-        console.log('user disconnected');
+        console.log('User disconnected');
     });
 });
 

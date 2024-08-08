@@ -12,35 +12,35 @@ body {
 .chat-container {
     display: flex;
     flex-direction: column;
-    width: 600px;
-    height: 700px;
+    width: 400px;
+    height: 690px;
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    background-color: #1e1e1e;
+    background-color: #000000;
 }
 
 .chat-history {
     flex: 1;
     padding: 20px;
     overflow-y: auto;
-    background: rgb(32,32,32);
-    background: linear-gradient(0deg, rgba(32,32,32,1) 0%, rgb(44, 44, 44) 99%);
+    background: rgb(0, 0, 0);
+    background: linear-gradient(0deg, rgb(0, 0, 0) 0%, rgb(16, 14, 14) 99%);
 }
 
 .chat-input {
     display: flex;
     padding: 10px;
-    border-top: 1px solid #333;
-    background-color: #1e1e1e;
+    border-top: 1px solid #ff9800;
+    background-color: #0e0e0e;
 }
 
 .chat-input input {
     flex: 1;
-    padding: 10px;
-    border: 1px solid #444;
+    padding: 14px;
+    border: 1px solid #ff9800;
     border-radius: 20px;
-    background-color: #333;
+    background-color: #000000;
     color: #fff;
     margin-right: 10px;
     transition: border-color 0.3s;
@@ -53,11 +53,12 @@ body {
 .chat-input button {
     background-color: #ff9800;
     border: none;
-    color: white;
-    padding: 10px;
+    color: #000000;
+    padding: 12px;
+    font-size: 20px;
     border-radius: 50%;
     cursor: pointer;
-    margin-right: 40px;
+    margin-right: 45px;
     transition: background-color 0.3s;
 }
 
@@ -69,26 +70,30 @@ body {
     margin-bottom: 15px;
     padding: 10px;
     border-radius: 10px;
-    max-width: 70%;
     animation: fadeIn 0.5s ease-in-out;
+    max-width: 70%;
+    word-wrap: break-word;
 }
 
 .message.user {
-    background: linear-gradient(to bottom right, rgba(86, 86, 86, 0.2), rgba(86, 86, 86, 0.2));
+    background: linear-gradient(to bottom right, rgba(86, 86, 86, 0), rgba(86, 86, 86, 0));
     align-self: flex-end;
     color: white;
+    text-align: right;
+    border: 1px solid #008cff;
     backdrop-filter: blur(100000px);
     filter: blur(0.4);
     font-family: "Ubuntu Mono", monospace;
     font-weight: 400;
     font-style: normal;
-    margin-left: 120px;
+    margin-left: auto; /* Добавьте это для выравнивания по правой стороне */
 }
 
 .message.ai {
     background: linear-gradient(to bottom right, rgba(248, 159, 57, 0), rgba(248, 79, 57, 0));
     align-self: flex-start;
     color: white;
+    border: 1px solid #ff9800;
     backdrop-filter: blur(10px);
     filter: blur(0.4);
     font-family: "Ubuntu Mono", monospace;
@@ -130,7 +135,7 @@ body {
 #visualizer-container {
     width: 100%;
     height: 20%;
-    background-color: #333;
+    background-color: #000000;
     display: flex;
     justify-content: center;
     align-items: center;
