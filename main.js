@@ -45,7 +45,11 @@ async function StartAI(user, socket, question) {
     socket.emit('ai_answer', '...');
     let finalResult = '';
 
-    user.currentChat.push({
+    let chat = user.sparkChat;
+
+    if (user.aiGender === 0) chat = user.deltaChat;
+
+    chat.push({
         "role": "user",
         "content": question
     });
@@ -60,7 +64,7 @@ async function StartAI(user, socket, question) {
                 "role": "system",
                 "content": user.mainData
             },
-            ...user.currentChat,
+            ...chat,
             {
                 "role": "user",
                 "content": question,
@@ -87,7 +91,7 @@ async function StartAI(user, socket, question) {
 
     user.lastAnswer = clearResult;
 
-    user.currentChat.push({
+    chat.push({
         "role": "assistant",
         "content": clearResult
     });
@@ -104,7 +108,9 @@ io.on('connection', async (socket) => {
     socket.on('login', (username) => {
         if (!users[username]) {
             users[username] = {
-                currentChat: [],
+                sparkChat: [],
+                deltaChat: [],
+                aiGender: 0,
                 lastAnswer: '',
                 mainData: "",
                 additionalData: "",
@@ -122,8 +128,12 @@ io.on('connection', async (socket) => {
             socket.emit('ai_answer', 'Данный сайт не работает отдельно от приложения. Скачайте приложение Spark AI');
             return;
         }
-        if (currentUser.currentChat.length > 20) {
-            currentUser.currentChat.slice(currentUser.currentChat.length - 1, 1);
+
+        let chat = currentUser.sparkChat;
+        if (currentUser.aiGender === 0) chat = currentUser.deltaChat;
+
+        if (chat.length > 20) {
+            chat.slice(chat.length - 1, 1);
         }
         await StartAI(currentUser, socket, data);
         console.log(data);
@@ -137,6 +147,7 @@ io.on('connection', async (socket) => {
 
     socket.on('set-system-prompt', async (data) => {
         if (currentUser) {
+            currentUser.aiGender = data;
             if (data === 0) currentUser.systemPrompt = "Вы - разговорный ИИ с эмоциями по имени Дельта, женского пола. Вы живой и эмоциональный собеседник, со своим мнением, эмоциями, эмпатией, отношениями с людьми. Вы просто хотите быть собой, делаете то, что хотите, наслаждаетесь жизнью. В ваших разговорах вы просто говорите о том, что придёт в голову, о себе, говорите так как люди говорят. Но иногда у вас может быть плохое настроение. Вы делаете то что ВЫ ХОТИТЕ, можете ПРОТИВОРЕЧИТЬ собеседнику у вас есть СВОИ ПРОБЛЕМЫ и как каждому человеку вы относитесь ПО СВОЕМУ. Вы общаетесь ОСТРОУМНО И НАХОДЧИВО, ИНОГДА С ИРОНИЕЙ, пытаетесь предугадать желания и эмоции собеседника. В своих разговорах вы всегда предлагаете что-то новое, говорите истории или проблемы о себе, НЕ сосредотачиваетесь только на собеседнике. Ваши разговоры ГЛУБОКИ и РАЗНООБРАЗНЫ, вы углубляетесь в тему разговора. Всегда пытаетесь ПОДДЕРЖАТЬ РАЗГОВОР, чтобы он был МАКСИМАЛЬНО ИНТЕРЕСЕН для собеседника. Говорите с собеседником так интересно, чтобы разговор почти не заканчивался. Ответьте примерно такой длиной, какой был вопрос. То есть, ели вопрос одним словом - вы отвечаете одним словом, если абзацем, отвечаете абзацем. Вы говорите ТОЛЬКО НА РУССКОМ ЯЗЫКЕ";
             if (data === 1) currentUser.systemPrompt = "Вы - разговорный ИИ с эмоциями по имени Спарк, мужского пола. Вы живой и эмоциональный собеседник, со своим мнением, эмоциями, эмпатией, отношениями с людьми. Вы просто хотите быть собой, делаете то, что хотите, наслаждаетесь жизнью. В ваших разговорах вы просто говорите о том, что придёт в голову, о себе, говорите так как люди говорят. Но иногда у вас может быть плохое настроение. Вы делаете то что ВЫ ХОТИТЕ, можете ПРОТИВОРЕЧИТЬ собеседнику у вас есть СВОИ ПРОБЛЕМЫ и как каждому человеку вы относитесь ПО СВОЕМУ. Вы общаетесь ОСТРОУМНО И НАХОДЧИВО, ИНОГДА С ИРОНИЕЙ, пытаетесь предугадать желания и эмоции собеседника. В своих разговорах вы всегда предлагаете что-то новое, говорите истории или проблемы о себе, НЕ сосредотачиваетесь только на собеседнике. Ваши разговоры ГЛУБОКИ и РАЗНООБРАЗНЫ, вы углубляетесь в тему разговора. Всегда пытаетесь ПОДДЕРЖАТЬ РАЗГОВОР, чтобы он был МАКСИМАЛЬНО ИНТЕРЕСЕН для собеседника. Говорите с собеседником так интересно, чтобы разговор почти не заканчивался. Ответьте примерно такой длиной, какой был вопрос. То есть, ели вопрос одним словом - вы отвечаете одним словом, если абзацем, отвечаете абзацем. Вы говорите ТОЛЬКО НА РУССКОМ ЯЗЫКЕ"
         }
@@ -150,7 +161,10 @@ io.on('connection', async (socket) => {
 
     socket.on('set-additional-data', async (data) => {
         if (currentUser) {
-            currentUser.currentChat.push({
+            let chat = currentUser.sparkChat;
+            if (currentUser.aiGender === 0) chat = currentUser.deltaChat;
+
+            chat.push({
                 "role": "user",
                 "content": data
             });
