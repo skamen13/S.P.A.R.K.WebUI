@@ -31,13 +31,14 @@ body {
 .chat-input {
     display: flex;
     padding: 10px;
+    margin-bottom: 10px;
     border-top: 1px solid #ff9800;
     background-color: #0e0e0e;
 }
 
 .chat-input input {
     flex: 1;
-    padding: 14px;
+    padding: 16px;
     border: 1px solid #ff9800;
     border-radius: 20px;
     background-color: #000000;
@@ -58,7 +59,7 @@ body {
     font-size: 20px;
     border-radius: 50%;
     cursor: pointer;
-    margin-right: 45px;
+    margin-right: 55px;
     transition: background-color 0.3s;
 }
 

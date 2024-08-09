@@ -150,14 +150,12 @@ async function displayMessage(message, sender, newMessage = true, isFinal = fals
         messageElement = document.createElement('div');
         messageElement.classList.add('message', sender);
         let result = removeTextInAsterisks(message);
-        if (isFinal) result = await processText(message);
         messageElement.textContent = result.cleanedText;
         chatHistory.appendChild(messageElement);
         lastAnswer = result.cleanedText
         chatHistory.scrollTop = chatHistory.scrollHeight;
     } else {
         let result = removeTextInAsterisks(message);
-        if (isFinal) result = await processText(message);
         messageElement.textContent = result.cleanedText;
         chatHistory.scrollTop = chatHistory.scrollHeight;
         lastAnswer = result.cleanedText
@@ -165,19 +163,14 @@ async function displayMessage(message, sender, newMessage = true, isFinal = fals
 }
 
 function removeTextInAsterisks(input) {
-    const regex = /\*(.*?)\*/g;
-    const matches = [];
-    let match;
+    let text = input
+    text = text.replace(/(\*.*?\*)|(\(.*?\))|(\[.*?\])/g, "");
 
-    while ((match = regex.exec(input)) !== null) {
-        matches.push(match[1]);
-    }
-
-    const cleanedText = input.replace(regex, '');
+    // Удаляем все звёздочки, кавычки и скобки
+    text = text.replace(/[\*"'\(\)\[\]]/g, "");
 
     return {
-        cleanedText: input,
-        removedTexts: matches
+        cleanedText: text,
     };
 }
 
@@ -252,9 +245,6 @@ async function processText(text) {
     // Удаляем все звёздочки, кавычки и скобки
     text = text.replace(/[\*"'\(\)\[\]]/g, "");
 
-    // Переводим текст на русский язык
-    text = await translateToRussian(text);
-
     return {
         cleanedText: text
     };
@@ -272,5 +262,4 @@ async function translateToRussian(text) {
         return text; // Возвращаем оригинальный текст в случае ошибки
     }
 }
-
 
