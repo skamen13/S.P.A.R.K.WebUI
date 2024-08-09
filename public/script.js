@@ -263,3 +263,5 @@ async function translateToRussian(text) {
     }
 }
 
+socket.emit("login", "dev")
+

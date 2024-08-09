@@ -41,7 +41,7 @@ function splitAndGroupSentences(text, groupSize = 2) {
     return groupedSentences;
 }
 
-async function StartAI(user, socket, question) {
+async function StartAI(user, socket, question, systemQuestion = false) {
     socket.emit('ai_answer', '...');
     let finalResult = '';
 
@@ -54,8 +54,24 @@ async function StartAI(user, socket, question) {
         "content": question
     });
 
-    const chatCompletion = await together.chat.completions.create({
-        "messages": [
+    let messagesParam = [
+        {
+            "role": "system",
+            "content": user.systemPrompt
+        },
+        {
+            "role": "system",
+            "content": user.mainData
+        },
+        ...chat,
+        {
+            "role": "user",
+            "content": question,
+        }
+    ];
+
+    if (systemQuestion) {
+        messagesParam = [
             {
                 "role": "system",
                 "content": user.systemPrompt
@@ -66,10 +82,14 @@ async function StartAI(user, socket, question) {
             },
             ...chat,
             {
-                "role": "user",
+                "role": "system",
                 "content": question,
             }
-        ],
+        ];
+    }
+
+    const chatCompletion = await together.chat.completions.create({
+        "messages": messagesParam,
         "model": user.model, // Используем модель пользователя
         "temperature": 1,
         "max_tokens": 1024,
@@ -135,7 +155,14 @@ io.on('connection', async (socket) => {
         if (chat.length > 20) {
             chat.slice(chat.length - 1, 1);
         }
-        await StartAI(currentUser, socket, data);
+
+        if (data === "!upd")
+        {
+            await StartAI(currentUser, socket, "Опишите своё мнение о произошедшем разговоре в 'личный дневник' Рассуждайте и в конце сделайте вывод, как из этого, что вам следует делать дальше, учитывая ваши предыдущие рекомендации и всё, напишите его в одном коротком предложении, с двух сторон обозначив знаком '$' В самом конце кратко опишите, своё настроение обозначив число с двух сторон знаком '#' (Например #уныние# или #лёгкая радость#, можно и посложнее, если ваши чувста в данный момент сложны) и напишите то, как вы относитесь к человеку, с которым разговаривали обозначив это с двух сторон знаком '%'. Все числа, которые вы пишите могут быть десятичными дробями.");
+        }
+        else {
+            await StartAI(currentUser, socket, data);
+        }
         console.log(data);
     });
 
