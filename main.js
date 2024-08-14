@@ -105,7 +105,7 @@ async function StartAI(user, socket, question, systemQuestion = false) {
         "messages": messagesParam,
         "model": user.model, // Используем модель пользователя
         "temperature": 1,
-        "max_tokens": 1024,
+        "max_tokens": 3024,
         "top_p": 0.4,
         "stream": true,
         "stop": null
