@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Умный Поиск</title>
+    <link rel="stylesheet" href="search-styles.css">
+</head>
+<body>
+<div class="container">
+    <div class="search-box">
+        <input type="text" id="search-input" placeholder="Введите запрос...">
+        <button id="search-button">Поиск</button>
+        <div id="settings-icon" class="settings-icon"><</div>
+    </div>
+    <div id="settings-panel" class="settings-panel">
+        <label for="info-length">Длина информации:</label>
+        <input type="range" id="info-length" name="info-length" min="5" max="100" value="30">
+        <span id="info-length-value">30</span> предложений
+    </div>
+    <div id="response" class="response">
+        <!-- Тут будет отображаться ответ -->
+    </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="search-scripts.js"></script>
+</body>
+</html>

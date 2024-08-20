@@ -87,7 +87,7 @@ body {
     font-family: "Ubuntu Mono", monospace;
     font-weight: 400;
     font-style: normal;
-    margin-left: auto; /* Добавьте это для выравнивания по правой стороне */
+    margin-left: auto;
 }
 
 .message.ai {

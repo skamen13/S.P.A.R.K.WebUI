@@ -10,6 +10,7 @@ const io = socketIo(server);
 const Groq = require('groq-sdk');
 const axios = require('axios');
 const Together = require("together-ai");
+const { Search } = require('./smart-search');
 
 const togetherApiKey = 'b1d33813a782e133a59ba32e103e75419915b499007c8b6ee1f34c5152dab438';
 const together = new Together({ apiKey: togetherApiKey });
@@ -21,6 +22,15 @@ function removeUndefined(str) {
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Обрабатываем запросы к /smart-search
+app.get('/smart-search', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'smart-search.html'));
+});
 
 const groq = new Groq({
     apiKey: "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"
@@ -183,6 +193,10 @@ io.on('connection', async (socket) => {
         if (currentUser) {
             currentUser.mainData = data;
         }
+    });
+
+    socket.on('smart-search', async (data) => {
+        await Search(data.query, data.infoLength, socket)
     });
 
     socket.on('set-system-prompt', async (data) => {
