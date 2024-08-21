@@ -15,7 +15,17 @@ const groq = new Groq({
 });
 
 
-async function Search(query = "", numSentences = 60, socket) {
+async function Search(query = "", numSentences = 60, socket, numPages = 2, user) {
+
+    if (!user) {
+        console.error('User object is not provided.');
+        socket.emit('search_answer', 'User object is not provided.');
+        return;
+    }
+    if (!user.searchChat) {
+        user.searchChat = [];
+    }
+
     const searchResults = await search({
         query: query,
         safeMode: false,
@@ -24,79 +34,156 @@ async function Search(query = "", numSentences = 60, socket) {
 
     if (searchResults.length === 0) {
         console.log('No results found.');
+        socket.emit('search_answer', 'No results found.');
         return;
     }
 
-    const url = searchResults[0].link;
-    const description = searchResults[0].description;
+    let allExcerpts = "";
 
-    try {
-        const response = await axios.get(url, { httpsAgent: agent });
-        const html = response.data;
-        const $ = cheerio.load(html);
+    console.log(searchResults)
 
-        // Extract visible text from the page
-        const visibleText = $('body').text();
+    let Sources = [];
 
-        // Find the closest match to the description
-        const sentences = visibleText.match(/[^.!?]+[.!?]+/g) || [];
-        let closestSentence = '';
-        let minDistance = Infinity;
+    // Проход по первым numPages страницам
+    for (let i = 0; i < Math.min(numPages, searchResults.length); i++) {
+        const url = searchResults[i].link;
+        const description = searchResults[i].description;
 
-        sentences.forEach(sentence => {
-            const distance = levenshtein.get(description, sentence);
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestSentence = sentence;
+        Sources.push({
+            "url": searchResults[i].link,
+            "name": searchResults[i].title
+        });
+        console.log(Sources[i].url)
+        console.log(Sources[i].url)
+
+        try {
+            const response = await axios.get(url, { httpsAgent: agent });
+            const html = response.data;
+            const $ = cheerio.load(html);
+
+            // Извлечение видимого текста со страницы
+            const visibleText = $('body').text();
+
+            // Определение позиции, начиная с 20% от общего текста
+            const startIdx = Math.floor(visibleText.length * 0.2);
+
+            // Получение текста начиная с 20% Zот общего объема
+            const textFromStart = visibleText.slice(startIdx);
+
+            // Разбиение текста на предложения
+            const sentences = textFromStart.match(/[^.!?]+[.!?]+/g) || [];
+
+            // Если предложения найдены, добавляем первые numSentences предложений в allExcerpts
+            if (sentences.length > 0) {
+                const excerpt = sentences.slice(0, numSentences).join(' ').trim();
+                allExcerpts += excerpt + "\n";
             }
-        });
-
-        if (closestSentence === '') {
-            console.log('No similar text found.');
-            return;
+        } catch (error) {
+            socket.emit('search_answer', 'Error fetching the page:' + error);
+            console.error('Error fetching the page:', error);
         }
-
-        // Find start position of the closest sentence
-        const startIdx = visibleText.indexOf(closestSentence);
-        if (startIdx === -1) {
-            console.log('Closest sentence not found in the text.');
-            return;
-        }
-
-        // Get the portion of the text starting from the closest sentence
-        const textFromStart = visibleText.slice(startIdx);
-
-        // Limit to the number of sentences specified
-        const excerpt = textFromStart.match(/[^.!?]+[.!?]+/g)?.slice(0, numSentences).join(' ').trim() || '';
-
-        const chatCompletion = await groq.chat.completions.create({
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "Вы доносите информацию для пользователей о любом их вопросе. Ваша информация и ответы должны быть НЕВЕРОЯТНО ТОЧНЫ и ПОНЯТНЫ любому. Если вы НЕ ЗАНЕТЕ ответа или информации о нём не предоставлено - ОТВЕЧАЙТЕ ИСПОЛЬЗУЯ ТО, ЧТО ЕСТЬ. Вы отвечаете БЕЗ ВАШИХ КОМЕНТАРИЕВ, ТОЛЬКО ФАКТЫ. Ваши ответы, как будто обрывки интересной статьи. вы говорите ТОЛЬКО НА РУССКОМ ЯЗЫКЕ"
-                },
-                {
-                    "role": "user",
-                    "content": "Развёрнуто ответьте на вопрос \"" + query + "\" используя информацию:\n" + excerpt
-                },
-            ],
-            "model": "gemma2-9b-it",
-            "temperature": 0.5,
-            "max_tokens": 1024,
-            "top_p": 1,
-            "stream": false,
-            "stop": null
-        });
-
-        console.log(chatCompletion.choices[0].message.content);
-
-        socket.emit('search_answer', chatCompletion.choices[0].message.content);
-
-    } catch (error) {
-        console.error('Error fetching the page:', error);
     }
+
+    // Если никаких отрывков не найдено, выводим сообщение
+    if (allExcerpts === "") {
+        console.log('No relevant excerpts found.');
+        socket.emit('search_answer', 'No relevant excerpts found.');
+        return;
+    }
+
+    // Отправляем текст для генерации ответа
+    const chatCompletion = await groq.chat.completions.create({
+        "messages": [
+            {
+                "role": "system",
+                "content": "Вы доносите информацию для пользователей о любом их вопросе. Ваша информация и ответы должны быть НЕВЕРОЯТНО ТОЧНЫ и ПОНЯТНЫ любому. Если вы НЕ ЗАНЕТЕ ответа или информации о нём не предоставлено - ОТВЕЧАЙТЕ ИСПОЛЬЗУЯ ТО, ЧТО ЕСТЬ. Ваша цель предоставить пользователю КАК МОЖНО БОЛЬШЕ проверенной и полезной по вопросу информации. Если у вас ЕСТЬ ЧТО ДОБАВИТЬ и ВЫ ЗНАЕТЕ ЧТО ЭТО ПРАВДА, ДОБАВЛЯЙТЕ ЭТУ ИНФОРМАЦИЮ. Вы отвечаете БЕЗ ВАШИХ КОМЕНТАРИЕВ, ТОЛЬКО ФАКТЫ. Ваши ответы, как будто обрывки интересной статьи. вы говорите ТОЛЬКО НА РУССКОМ ЯЗЫКЕ"
+            },
+            {
+                "role": "user",
+                "content": "Развёрнуто (и с красивым оформлением) ответьте на вопрос \"" + query + "\" используя информацию:\n" + allExcerpts
+            },
+        ],
+        "model": "gemma2-9b-it",
+        "temperature": 0.5,
+        "max_tokens": 3024,
+        "top_p": 1,
+        "stream": true,
+        "stop": null
+    });
+
+    let finalAnswer = '';
+
+
+    for await (const chunk of chatCompletion) {
+        process.stdout.write(chunk.choices[0]?.delta?.content || '');
+
+        finalAnswer += chunk.choices[0]?.delta?.content;
+
+        socket.emit('search_answer', {
+            response: finalAnswer,
+            sources: Sources
+        });
+    }
+
+    user.searchChat = [
+        {
+            "role": "system",
+            "content": "Вы доносите информацию для пользователей о любом их вопросе. Ваша информация и ответы должны быть НЕВЕРОЯТНО ТОЧНЫ и ПОНЯТНЫ любому. Если вы НЕ ЗАНЕТЕ ответа или информации о нём не предоставлено - ОТВЕЧАЙТЕ ИСПОЛЬЗУЯ ТО, ЧТО ЕСТЬ. Ваша цель предоставить пользователю КАК МОЖНО БОЛЬШЕ проверенной и полезной по вопросу информации. Если у вас ЕСТЬ ЧТО ДОБАВИТЬ и ВЫ ЗНАЕТЕ ЧТО ЭТО ПРАВДА, ДОБАВЛЯЙТЕ ЭТУ ИНФОРМАЦИЮ. Вы отвечаете БЕЗ ВАШИХ КОМЕНТАРИЕВ, ТОЛЬКО ФАКТЫ. Ваши ответы, как будто обрывки интересной статьи. вы говорите ТОЛЬКО НА РУССКОМ ЯЗЫКЕ"
+        },
+        {
+            "role": "user",
+            "content": "Развёрнуто (и с красивым оформлением) ответьте на вопрос \"" + query + "\" используя информацию:\n" + allExcerpts
+        },
+        {
+            "role": "assistant",
+            "content": finalAnswer
+        },
+    ]
+}
+
+async function refineSearch(query = "", socket, user){
+    // Отправляем текст для генерации ответа
+    const chatCompletion = await groq.chat.completions.create({
+        "messages": [
+            ...user.searchChat,
+            {
+                "role": "user",
+                "content": query
+            },
+        ],
+        "model": "gemma2-9b-it",
+        "temperature": 0.5,
+        "max_tokens": 3024,
+        "top_p": 1,
+        "stream": true,
+        "stop": null
+    });
+
+    let finalAnswer = '';
+
+    for await (const chunk of chatCompletion) {
+        process.stdout.write(chunk.choices[0]?.delta?.content || '');
+
+        finalAnswer += chunk.choices[0]?.delta?.content;
+    }
+
+    user.searchChat.push(
+        {
+            "role": "user",
+            "content": query
+        },
+        {
+            "role": "assistant",
+            "content": finalAnswer
+        },
+    );
+
+    socket.emit('refine_answer', {
+        response: finalAnswer,
+    });
 }
 
 module.exports = {
-    Search
+    Search,
+    refineSearch
 };

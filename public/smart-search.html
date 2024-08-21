@@ -11,15 +11,29 @@
     <div class="search-box">
         <input type="text" id="search-input" placeholder="Введите запрос...">
         <button id="search-button">Поиск</button>
-        <div id="settings-icon" class="settings-icon"><</div>
+        <span id="settings-icon" class="settings-icon">&#9660;</span>
     </div>
+
+    <!-- Панель настроек -->
     <div id="settings-panel" class="settings-panel">
         <label for="info-length">Длина информации:</label>
-        <input type="range" id="info-length" name="info-length" min="5" max="100" value="30">
+        <input type="range" id="info-length" min="5" max="100" value="30">
         <span id="info-length-value">30</span> предложений
     </div>
-    <div id="response" class="response">
-        <!-- Тут будет отображаться ответ -->
+
+    <!-- Область ответа -->
+    <div id="response" class="response"></div>
+
+    <!-- Раздел для отображения ссылок на источники -->
+    <div id="sources" class="sources"></div>
+
+    <!-- Раздел чата -->
+    <div id="chat" class="chat">
+        <div id="chat-messages" class="chat-messages"></div>
+        <div class="refinement-box">
+            <input type="text" id="refinement-input" placeholder="Уточните вопрос...">
+            <button id="refinement-button">Уточнить</button>
+        </div>
     </div>
 </div>
 
