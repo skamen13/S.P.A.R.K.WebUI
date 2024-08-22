@@ -5,8 +5,6 @@ const levenshtein = require("fast-levenshtein");
 const https = require("https");
 const Groq = require('groq-sdk');
 const express = require('express');
-const app = express();
-const port = 3000;
 
 const agent = new https.Agent({ rejectUnauthorized: false });
 

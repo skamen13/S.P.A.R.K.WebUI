@@ -11,6 +11,7 @@ const Groq = require('groq-sdk');
 const axios = require('axios');
 const Together = require("together-ai");
 const { Search , refineSearch } = require('./smart-search');
+const { aiWrite } = require("./notes")
 
 const togetherApiKey = 'b1d33813a782e133a59ba32e103e75419915b499007c8b6ee1f34c5152dab438';
 const together = new Together({ apiKey: togetherApiKey });
@@ -30,6 +31,10 @@ app.get('/', (req, res) => {
 // Обрабатываем запросы к /smart-search
 app.get('/smart-search', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'smart-search.html'));
+});
+
+app.get('/notes', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'notes.html'));
 });
 
 const groq = new Groq({
@@ -198,6 +203,10 @@ io.on('connection', async (socket) => {
 
     socket.on('smart-search', async (data) => {
         await Search(data.query, data.infoLength, socket, 2, currentUser)
+    });
+
+    socket.on('notes-action', async (data) => {
+        await aiWrite(data.text, data.prompt, socket)
     });
 
     socket.on('refine-search', async (data) => {
