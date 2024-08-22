@@ -38,6 +38,8 @@
             </div>
         </div>
         <button onclick="format('removeFormat')">&#x1F5D1;</button> <!-- 🗑 -->
+        <button onclick="saveNote()">&#x1F4BE;</button> <!-- 💾 -->
+        <button onclick="loadNote()">&#x1F4E5;</button> <!-- 📥 -->
     </div>
 
     <!-- ИИ инструменты -->
@@ -53,6 +55,9 @@
                 <button onclick="aiAction('custom')">&#x1F527; Моё действие</button> <!-- 🔧 -->
             </div>
         </div>
+        <button onclick="openCustomActionInput()">&#x1F527;</button> <!-- 🔧 -->
+        <button onclick="saveCustomAction()">&#x1F4BE;</button> <!-- 💾 -->
+        <button onclick="loadCustomAction()">&#x1F4E5;</button> <!-- 📥 -->
     </div>
 
     <!-- Кнопки управления ИИ -->
@@ -64,6 +69,15 @@
     <!-- Текстовый редактор -->
     <div id="editor" contenteditable="true" class="text-editor">
         Ваш текст здесь...
+    </div>
+</div>
+
+<!-- Модальное окно для ввода текста -->
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <textarea id="modal-input" placeholder="Введите текст..."></textarea>
+        <button onclick="submitModalInput()">OK</button>
     </div>
 </div>
 
