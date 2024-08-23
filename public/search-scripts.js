@@ -5,11 +5,11 @@ const searchInput = document.getElementById('search-input');
 const searchButton = document.getElementById('search-button');
 const settingsIcon = document.getElementById('settings-icon');
 const settingsPanel = document.getElementById('settings-panel');
-const responseDiv = document.getElementById('response');
-const sourcesDiv = document.getElementById('sources');
+const siteCardsDiv = document.getElementById('site-cards');
+const chatDiv = document.getElementById('chat');
+const chatMessages = document.getElementById('chat-messages');
 const refinementInput = document.getElementById('refinement-input');
 const refinementButton = document.getElementById('refinement-button');
-const chatMessages = document.getElementById('chat-messages');
 const infoLength = document.getElementById('info-length');
 const infoLengthValue = document.getElementById('info-length-value');
 
@@ -21,60 +21,39 @@ settingsIcon.addEventListener('click', () => {
 // Обработка клика по кнопке поиска
 searchButton.addEventListener('click', () => {
     const query = searchInput.value;
-    responseDiv.innerHTML = ''; // Очищаем ответ
-    sourcesDiv.innerHTML = ''; // Очищаем источники
-    chatMessages.innerHTML = ''; // Очищаем чат
 
-    // Отображаем анимацию загрузки
-    const loadingAnimation = document.createElement('div');
-    loadingAnimation.className = 'loading-animation';
-    loadingAnimation.innerHTML = '<div></div><div></div><div></div>';
-    responseDiv.appendChild(loadingAnimation);
-    loadingAnimation.style.display = 'inline-block';
+    siteCardsDiv.innerHTML = ''; // Очищаем предыдущие результаты
+    chatDiv.style.display = 'none'; // Скрываем чат
 
     // Отправляем запрос на сервер
-    socket.emit('smart-search', { query: query, infoLength: infoLength.value });
+    socket.emit('search_query', query);
 });
 
 // Обработка ответа от сервера
-socket.on('search_answer', (msg) => {
-    const loadingAnimation = document.querySelector('.loading-animation');
-    if (loadingAnimation) loadingAnimation.style.display = 'none';
+socket.on('search_answer', (data) => {
+    siteCardsDiv.innerHTML = ''; // Очищаем предыдущие результаты
+    const descriptions = data.response.split('$'); // Разделение строк по символу новой строки
 
-    // Отображаем ответ
-    responseDiv.innerHTML = formatText(msg.response);
+    // Отображение карточек для каждого сайта
+    descriptions.forEach((description, index) => {
+        if (index !== 0) {
+            const siteCard = document.createElement('div');
+            siteCard.className = 'site-card';
+            siteCard.textContent = description;
 
-    sourcesDiv.innerHTML = '';
+            siteCard.addEventListener('click', () => {
+                console.log("site card", index)
 
-    // Отображаем источники
-    if (msg.sources && msg.sources.length > 0) {
-        msg.sources.forEach(source => {
-            const link = document.createElement('a');
-            link.href = source.url;
-            link.target = '_blank';
-            link.innerHTML = `<img src="https://www.google.com/s2/favicons?domain=${new URL(source.url).hostname}" alt="icon"> ${source.name}`;
-            sourcesDiv.appendChild(link);
-        });
-    }
-});
+                // Выполнение умного поиска по выбранному сайту
+                socket.emit('smart-search', { query: searchInput.value, siteUrl: data.sources[index - 1].url });
 
-// Обработка клика по кнопке уточнения
-refinementButton.addEventListener('click', () => {
-    const refinementQuery = refinementInput.value;
-    const originalQuery = searchInput.value;
+                // Показ чата
+                chatDiv.style.display = 'block';
+            });
 
-    // Добавляем новое сообщение пользователя в чат
-    chatMessages.innerHTML += `<div class="message user">${refinementQuery}</div>`;
-
-    // Отправляем уточнённый запрос на сервер
-    socket.emit('refine-search', { query: originalQuery, refinement: refinementQuery, infoLength: infoLength.value });
-});
-
-// Обработка ответа на уточнённый запрос
-socket.on('refine_answer', (msg) => {
-    // Добавляем ответ системы в чат
-    chatMessages.innerHTML += `<div class="message ai">${formatText(msg.response)}</div>`;
-    chatMessages.scrollTop = chatMessages.scrollHeight; // Прокручиваем вниз
+            siteCardsDiv.appendChild(siteCard);
+        }
+    });
 });
 
 // Форматирование текста с учетом специальных символов
@@ -93,5 +72,14 @@ function formatText(text) {
 
     return text;
 }
+
+// Обработка результата умного поиска
+socket.on('smart_search_answer', (data) => {
+    siteCardsDiv.innerHTML = '';
+    const message = document.createElement('div');
+    message.className = 'response';
+    message.innerHTML = formatText(data.response);
+    siteCardsDiv.appendChild(message);
+});
 
 socket.emit("login", "dev")

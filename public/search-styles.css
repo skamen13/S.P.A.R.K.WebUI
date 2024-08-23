@@ -17,7 +17,6 @@ body {
 .search-box {
     display: flex;
     align-items: center;
-    align-items: center;
     margin-bottom: 20px;
     position: relative;
 }
@@ -31,12 +30,6 @@ body {
     color: #fff;
     margin-right: 10px;
     transition: border-color 0.6s;
-    font-family: "Inter", sans-serif;
-    font-optical-sizing: auto;
-    font-weight: 500;
-    font-style: normal;
-    letter-spacing: 0;
-    margin-left: auto;
     font-size: 16px;
 }
 
@@ -89,6 +82,36 @@ body {
     color: #ff9800;
 }
 
+/* Стили для блока карточек сайтов */
+.site-cards {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.site-card {
+    margin-bottom: 50px;
+    padding: 20px;
+    border: 2px solid #008cff;
+    border-radius: 20px;
+    background-color: #1c1c1c;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.site-card:hover {
+    background-color: #2b2b2b;
+}
+
+/* Стили для блока чата */
+.chat {
+    margin-top: 20px;
+    display: none;
+}
+
+
 .response {
     margin-top: 20px;
     padding: 20px;
@@ -125,191 +148,4 @@ body {
     align-items: center;
     margin: 10px 0;
     font-size: 24px;
-}
-
-.loading-animation {
-    display: none;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.loading-animation div {
-    width: 8px;
-    height: 8px;
-    background-color: #ff9800;
-    border-radius: 50%;
-    animation: loading 1.2s infinite ease-in-out;
-    margin: 0 4px;
-    display: inline-block;
-}
-
-.loading-animation div:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.loading-animation div:nth-child(3) {
-    animation-delay: 0.4s;
-}
-
-@keyframes loading {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(2);
-    }
-}
-
-/* Стили для блока ссылок на источники */
-.sources {
-    margin-top: 20px;
-    padding: 10px;
-    background-color: #000000;
-    border: 2px solid #00c853;
-    border-radius: 20px;
-    color: white;
-    font-family: "Inter", sans-serif;
-    font-optical-sizing: auto;
-    font-weight: 500;
-    line-height: 1.5;
-    font-style: normal;
-    letter-spacing: 0;
-    text-align: left;
-    font-size: 14px;
-}
-
-.sources a {
-    color: #00c853;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.sources a img {
-    width: 16px;
-    height: 16px;
-    margin-right: 10px;
-}
-
-/* Стили для блока уточнения */
-.refinement-box {
-    display: flex;
-    align-items: center;
-    margin-top: 20px;
-}
-
-#refinement-input {
-    flex: 1;
-    padding: 10px;
-    border: 2px solid #008cff;
-    border-radius: 20px;
-    background-color: #000000;
-    color: #fff;
-    margin-right: 10px;
-    font-family: "Inter", sans-serif;
-    font-optical-sizing: auto;
-    font-weight: 500;
-    font-style: normal;
-    letter-spacing: 0;
-    font-size: 16px;
-}
-
-#refinement-button {
-    background-color: #008cff;
-    border: none;
-    color: #000000;
-    padding: 10px;
-    font-size: 18px;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-#refinement-button:hover {
-    background-color: #66b3ff;
-}
-
-/* Стили для блока чата */
-.chat {
-    margin-top: 20px;
-}
-
-.chat-messages {
-    background-color: #000000;
-    border: 2px solid #008cff;
-    border-radius: 20px;
-    padding: 10px;
-    min-height: 200px;
-    color: white;
-    font-family: "Inter", sans-serif;
-    font-optical-sizing: auto;
-    font-weight: 500;
-    font-style: normal;
-    letter-spacing: 0;
-    font-size: 16px;
-    overflow-y: auto;
-}
-
-.chat-messages .message {
-    margin-bottom: 10px;
-    padding: 10px;
-    border-radius: 10px;
-}
-
-.chat-messages .message.user {
-    background-color: #0061a8;
-    align-self: flex-end;
-}
-
-.chat-messages .message.ai {
-    background: linear-gradient(to bottom right, rgba(248, 159, 57, 0), rgba(248, 79, 57, 0));
-    align-self: flex-start;
-    color: white;
-    border: 1px solid #ff9800;
-    backdrop-filter: blur(10px);
-    filter: blur(0.4);
-    font-family: "Ubuntu Mono", monospace;
-    font-weight: 400;
-    font-style: normal;
-}
-
-/* Стили для блока уточнения */
-.refinement-box {
-    display: flex;
-    align-items: center;
-    margin-top: 10px;
-}
-
-#refinement-input {
-    flex: 1;
-    padding: 10px;
-    border: 2px solid #008cff;
-    border-radius: 20px;
-    background-color: #000000;
-    color: #fff;
-    margin-right: 10px;
-    font-family: "Inter", sans-serif;
-    font-optical-sizing: auto;
-    font-weight: 500;
-    font-style: normal;
-    letter-spacing: 0;
-    font-size: 16px;
-}
-
-#refinement-button {
-    background-color: #008cff;
-    border: none;
-    color: #000000;
-    padding: 10px;
-    font-size: 18px;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-#refinement-button:hover {
-    background-color: #66b3ff;
 }
