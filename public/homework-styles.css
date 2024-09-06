@@ -1,0 +1,60 @@
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #000000;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 600px;
+    margin: 20px auto;
+    background-color: #1a1a1a;
+    border-radius: 15px;
+    box-shadow: 0 10px 60px rgba(0, 225, 255, 0.2);
+    overflow: hidden;
+    padding: 20px;
+}
+
+.header {
+    background: rgb(255,162,0);
+    background: linear-gradient(90deg, rgba(255,162,0,1) 0%, rgba(0,212,255,1) 100%);
+    color: white;
+    border-radius: 20px;
+    padding: 15px;
+
+    text-align: center;
+}
+
+.steps {
+    padding: 20px;
+}
+
+.step {
+    position: relative;
+    padding-bottom: 40px;
+    margin-bottom: 20px;
+}
+
+.step h2 {
+    color: #c58615;
+    font-size: 1.5em;
+}
+
+.animated-text {
+    font-size: 1em;
+    color: #7f8c8d;
+    overflow: hidden;
+    white-space: pre-wrap; /* Позволяет тексту переноситься на новую строку */
+    border-right: 3px solid;
+    animation: typing 3s steps(30, end), blink-caret 0.75s step-end infinite;
+}
+
+@keyframes typing {
+    from { width: 0; }
+    to { width: 100%; }
+}
+
+@keyframes blink-caret {
+    from, to { border-color: transparent; }
+    50% { border-color: #3498db; }
+}
