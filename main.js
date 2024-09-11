@@ -78,28 +78,36 @@ async function StartAI(user, socket, question, systemQuestion = false) {
     let actionParams
 
     if (!systemQuestion) {
-        const chatCompletion = await groq.chat.completions.create({
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "JSON. Выдайте информацию по тому, какие действия должен делать универсальный разговорный ИИ, когда его просят о том, что пользователь просит сейчас. В поле \"action\" напишите действие из списка, в поле \"args\" напишите строковые аргументы к действию. Вот все возможные действия:\n\"none\", без аргументов (никакого действия)\n\"talk\", в аргументах тема разговора (ИИ просто общается)\n\"search\", в аргументах строка запроса в интернете (обычный поиск ответа в интернете, используйте, когда спрашивают важную информацию о мире)\n\"research\", в аргументах строка запроса в интернете (умный, глобальный поиск в интернете)\n\"homework\" (решение предоставленного домашнего задания с красивым оформлением, НЕ ИСПОЛЬЗУЙТЕ ЕСЛИ НЕТ КОНКРЕТНОЙ ЗАДАЧИ)\n\"presentation\", в аргументах тема презентации на русском (создание презентации в powerpoint на нужную тему). ПИШИТЕ ПО ОФОРМЛЕНИЮ ТАК ЖЕ КАК В ПРИМЕРЕ. Пример вашего ВСЕГО ответа: \"\n{\n\"action\": \"presentation\",\n\"args\": \"Основание Екатеринодара \"\n}\n\""
+        try {
+            const chatCompletion = await groq.chat.completions.create({
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "JSON. Выдайте информацию по тому, какие действия должен делать универсальный разговорный ИИ, когда его просят о том, что пользователь просит сейчас. В поле \"action\" напишите действие из списка, в поле \"args\" напишите строковые аргументы к действию. Вот все возможные действия:\n\"none\", без аргументов (никакого действия)\n\"talk\", в аргументах тема разговора (ИИ просто общается)\n\"search\", в аргументах строка запроса в интернете (обычный поиск ответа в интернете, используйте, когда спрашивают важную информацию о мире)\n\"research\", в аргументах строка запроса в интернете (умный, глобальный поиск в интернете)\n\"homework\" (решение предоставленного домашнего задания с красивым оформлением, НЕ ИСПОЛЬЗУЙТЕ ЕСЛИ НЕТ КОНКРЕТНОЙ ЗАДАЧИ)\n\"presentation\", в аргументах тема презентации на русском (создание презентации в powerpoint на нужную тему). ПИШИТЕ ПО ОФОРМЛЕНИЮ ТАК ЖЕ КАК В ПРИМЕРЕ. Пример вашего ВСЕГО ответа: \"\n{\n\"action\": \"presentation\",\n\"args\": \"Основание Екатеринодара \"\n}\n\""
+                    },
+                    ...chat.slice(-2),
+                ],
+                "model": "llama3-8b-8192",
+                "temperature": 0.5,
+                "max_tokens": 1024,
+                "top_p": 0,
+                "stream": false,
+                "response_format": {
+                    "type": "json_object"
                 },
-                ...chat.slice(-2),
-            ],
-            "model": "llama3-8b-8192",
-            "temperature": 0.5,
-            "max_tokens": 1024,
-            "top_p": 0,
-            "stream": false,
-            "response_format": {
-                "type": "json_object"
-            },
-            "stop": null
-        });
+                "stop": null
+            });
 
-        actionParams = await completeAction(JSON.parse(chatCompletion.choices[0].message.content).action, JSON.parse(chatCompletion.choices[0].message.content).args, question)
+            // Пробуем разобрать ответ и выполнить действие
+            const content = JSON.parse(chatCompletion.choices[0].message.content);
+            const actionParams = await completeAction(content.action, content.args, question);
 
-        console.log(actionParams)
+            console.log(actionParams);
+        } catch (error) {
+            // Можно сделать что-то, чтобы продолжить выполнение, например, вернуть default значения или просто проигнорировать
+            actionParams = ""
+        }
+
     }
 
     if (actionParams) {
