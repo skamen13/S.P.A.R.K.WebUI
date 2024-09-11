@@ -6,6 +6,8 @@ const https = require("https");
 const Groq = require('groq-sdk');
 const express = require('express');
 const { ocrSpace } = require('ocr-space-api-wrapper');
+const {convert} = require("html-to-text");
+const { gwsearch } = require("nayan-server");
 
 const agent = new https.Agent({ rejectUnauthorized: false });
 
@@ -72,6 +74,17 @@ async function SearchLinks(query = "", socket) {
             response: finalAnswer,
             sources: Sources
         });
+    }
+}
+
+async function searchLinks(query = "", limit = "1") {
+    try {
+        const data = await gwsearch(query, limit);
+        console.log(data.data);
+        return data.data;
+    } catch (error) {
+        console.error("Error during search:", error);
+        throw error;
     }
 }
 
@@ -173,6 +186,57 @@ async function Search(query = "", numSentences = 60, url, socket, user) {
             "content": finalAnswer
         },
     ]
+}
+
+async function answerFromURL(url =  "", question = ""){
+
+    let allExcerpts = "";
+
+    try {
+        const response = await axios.get(url, { httpsAgent: agent });
+        const html = response.data;
+
+        allExcerpts = convert(html, {
+            wordwrap: 130 // Ширина строки (можно настроить)
+        });
+
+    } catch (error) {
+        //socket.emit('smart_search_answer', 'Error fetching the page:' + error);
+        console.error('Error fetching the page:', error);
+    }
+
+    console.log(allExcerpts)
+
+
+    // Отправляем текст для генерации ответа
+    const chatCompletion = await groq.chat.completions.create({
+        "messages": [
+            {
+                "role": "system",
+                "content": "Вы доносите информацию для пользователей о любом их вопросе. Ваша информация и ответы должны быть НЕВЕРОЯТНО ТОЧНЫ и ПОНЯТНЫ любому. Если вы НЕ ЗАНЕТЕ ответа или информации о нём не предоставлено - ОТВЕЧАЙТЕ ИСПОЛЬЗУЯ ТО, ЧТО ЕСТЬ. Ваша цель предоставить пользователю В ОДНО КОРОТКОЕ ПРЕДЛОЖЕНИЕ проверенную и полезную по вопросу информацию. Вы отвечаете БЕЗ ВАШИХ КОМЕНТАРИЕВ, ТОЛЬКО ФАКТЫ. Ваши ответы, как будто обрывки интересной статьи. DO NOT HALLUCINATE! вы говорите ТОЛЬКО НА РУССКОМ ЯЗЫКЕ"
+            },
+            {
+                "role": "user",
+                "content": "КАКОЙ ОТВЕТ НА ВОПРОС \"" + question + "\" в ДАННОМ ТЕКСТЕ ИНФОРМАЦИИ. используйте информацию (код сайта с информацией). ОТВЕТЬТЕ ОЧЕНЬ КРАТКО И ПОНЯТНО, В ОДНО КОРОТКОЕ ПРЕДЛОЖЕНИЕ. Вот информация:\n" + allExcerpts
+            },
+        ],
+        "model": "llama3-8b-8192",
+        "temperature": 0.5,
+        "max_tokens": 8192,
+        "top_p": 1,
+        "stream": true,
+        "stop": null
+    });
+
+    let finalAnswer = "";
+
+    for await (const chunk of chatCompletion) {
+        process.stdout.write(chunk.choices[0]?.delta?.content || '');
+
+        finalAnswer += chunk.choices[0]?.delta?.content;
+    }
+
+    return finalAnswer;
 }
 
 
@@ -355,5 +419,7 @@ async function refineSearch(query = "", socket, user){
 module.exports = {
     Search,
     refineSearch,
-    SearchLinks
+    SearchLinks,
+    searchLinks,
+    answerFromURL
 };

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal AI Registration</title>
+    <link rel="stylesheet" href="register-styles.css">
+</head>
+<body>
+<div class="container">
+    <div class="question-box qa">
+        <div class="question-progress">
+            <span id="question-index">1</span>/<span id="total-questions"></span>
+        </div>
+        <div class="question-content">
+            <p id="question-text"></p>
+        </div>
+        <div class="options">
+            <div id="options-list"></div>
+            <div class="custom-answer">
+                <input type="text" id="custom-answer" placeholder="Другой ответ..." oninput="checkCustomAnswer()" />
+            </div>
+        </div>
+        <div class="navigation">
+            <button id="prev-btn" onclick="prevQuestion()">Назад</button>
+<button id="next-btn" onclick="nextQuestion()" disabled>Next</button>
+        </div>
+    </div>
+</div>
+<div class="loading-screen" id="loading-screen" style="display:none;">
+    <div class="loading-animation">
+        <div class="loader"></div>
+        <p>Магический ИИ подстраивает ваши настройки...</p>
+    </div>
+</div>
+
+<div class="final-screen" id="final-screen" style="display:none;">
+    <div class="final-content">
+        <img src="welcome-icon.png" alt="Welcome Icon" class="welcome-icon">
+        <h2>Настройка завершена</h2>
+        <p>Добро пожаловать!</p>
+    </div>
+</div>
+
+<script src="register-scripts.js"></script>
+</body>
+</html>

@@ -43,6 +43,7 @@
     "mathjs": "^13.1.1",
     "mongoose": "^6.0.0",
     "natural": "^7.0.6",
+    "nayan-server": "^2.4.2",
     "nerdamer": "^1.1.13",
     "node-fetch": "^3.3.2",
     "node-http-proxy": "^0.2.4",
