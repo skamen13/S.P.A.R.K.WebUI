@@ -39,11 +39,17 @@ body {
 .chat-input input {
     flex: 1;
     padding: 16px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     border: 1px solid #ff9800;
     border-radius: 20px;
     background-color: #000000;
+    font-family: "Ubuntu Mono", monospace;
+    font-weight: 400;
+    font-style: normal;
     color: #fff;
-    margin-right: 10px;
+    margin-right: 16px;
     transition: border-color 0.3s;
 }
 
