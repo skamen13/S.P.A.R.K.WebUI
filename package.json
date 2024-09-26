@@ -13,6 +13,7 @@
     "@capacitor/cli": "^6.1.0",
     "@capacitor/core": "^6.1.0",
     "@lexjs/web-search": "^1.1.4",
+    "@llamaindex/cloud": "^0.2.7",
     "@nrjdalal/google-parser": "^2.3.0",
     "@victorsouzaleal/googlethis": "^1.8.1",
     "algebra.js": "^0.2.6",
@@ -21,6 +22,7 @@
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
     "cheerio": "^1.0.0-rc.12",
+    "compromise": "^14.14.0",
     "crypto": "^1.0.1",
     "dotenv": "^16.4.5",
     "electron-store": "^9.0.0",
@@ -54,6 +56,7 @@
     "optiic": "^1.0.1",
     "proxy-agent": "^6.4.0",
     "puppeteer": "^22.11.2",
+    "rake-js": "^0.1.1",
     "replicate": "^0.32.1",
     "request": "^2.88.2",
     "socket.io": "^4.7.5",
@@ -61,6 +64,7 @@
     "tesseractocr": "^2.0.3",
     "together-ai": "^0.6.0-alpha.4",
     "uuid": "^10.0.0",
+    "wikipedia": "^2.1.2",
     "ws": "^8.17.0"
   }
 }

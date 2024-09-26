@@ -14,6 +14,8 @@ const { Search , refineSearch, SearchLinks, searchLinks, answerFromURL } = requi
 const { aiWrite } = require("./notes");
 const { HomeworkSearch } = require("./homework");
 const {factorialDependencies} = require("mathjs");
+const wiki = require("wikipedia");
+const {gwsearch} = require("nayan-server");
 
 const togetherApiKey = 'b1d33813a782e133a59ba32e103e75419915b499007c8b6ee1f34c5152dab438';
 const together = new Together({ apiKey: togetherApiKey });
@@ -77,13 +79,15 @@ async function StartAI(user, socket, question, systemQuestion = false) {
 
     let actionParams
 
+    let S_E_A_R_C_H = "";
+
     if (!systemQuestion) {
         try {
             const chatCompletion = await groq.chat.completions.create({
                 "messages": [
                     {
                         "role": "system",
-                        "content": "JSON. Выдайте информацию по тому, какие действия должен делать универсальный разговорный ИИ, когда его просят о том, что пользователь просит сейчас. В поле \"action\" напишите действие из списка, в поле \"args\" напишите строковые аргументы к действию. Вот все возможные действия:\n\"none\", без аргументов (никакого действия)\n\"talk\", в аргументах тема разговора (ИИ просто общается)\n\"search\", в аргументах строка НА РУССКОМ запроса в интернете (обычный поиск ответа в интернете, используйте, когда спрашивают важную информацию о мире)\n\"research\", в аргументах строка запроса в интернете (умный, глобальный поиск в интернете)\n\"homework\" (решение предоставленного домашнего задания с красивым оформлением, НЕ ИСПОЛЬЗУЙТЕ ЕСЛИ НЕТ КОНКРЕТНОЙ ЗАДАЧИ)\n\"presentation\", в аргументах тема презентации на русском (создание презентации в powerpoint на нужную тему). ПИШИТЕ ПО ОФОРМЛЕНИЮ ТАК ЖЕ КАК В ПРИМЕРЕ. Пример вашего ВСЕГО ответа: \"\n{\n\"action\": \"presentation\",\n\"args\": \"Основание Екатеринодара \"\n}\n\""
+                        "content": "JSON. Выдайте информацию по тому, какие действия должен делать универсальный разговорный ИИ, когда его просят о том, что пользователь просит сейчас. В поле \"action\" напишите действие из списка, в поле \"args\" напишите строковые аргументы к действию. Вот все возможные действия:\n\"none\", пустые аргументы (никакого действия)\n\"talk\", в аргументах тема разговора (ИИ просто общается, НЕ ВОПРОСЫ О МИРЕ)\n\"text work\" (Работа с текстом, написание текста с красивым оформлением, будь то письмо, реферат или любое домашнее задание, объяснение сложных тем, код. Используйте всегда когда ответить нужно НЕ РАЗГОВОРНО, А ФОРМАЛЬНО, НЕ ИСПОЛЬЗУЙТЕ ЕСЛИ НЕТ КОНКРЕТНОЙ ЗАДАЧИ)\n\"search\", в аргументах строка НА РУССКОМ запроса в интернете (обычный поиск ответа в интернете, используйте, когда спрашивают ВОПРОСЫ фактах о МИРЕ, например его можно использовать в \"А сколько лет живёт солнце?\")\n\"vision\", пустые аргументы (просмотр реальной жизни при помощи камер, используйте когда речь идёт о чём-то, чтобы понять которое нужно это увидеть)\n\"presentation\", в аргументах тема презентации на русском (создание презентации в powerpoint на нужную тему, ). ПИШИТЕ ПО ОФОРМЛЕНИЮ ТАК ЖЕ КАК В ПРИМЕРЕ. Пример вашего ВСЕГО ответа: \"\n{\n\"action\": \"presentation\",\n\"args\": \"Основание Екатеринодара \"\n}\n\""
                     },
                     ...chat.slice(-2),
                 ],
@@ -101,6 +105,10 @@ async function StartAI(user, socket, question, systemQuestion = false) {
             // Пробуем разобрать ответ и выполнить действие
             const content = JSON.parse(chatCompletion.choices[0].message.content);
             const actionParams = await completeAction(content.action, content.args, question);
+
+            if (actionParams === "text work"){
+                S_E_A_R_C_H = content.args;
+            }
 
             console.log(actionParams);
         } catch (error) {
@@ -150,33 +158,40 @@ async function StartAI(user, socket, question, systemQuestion = false) {
 
     console.log(messagesParam)
 
-    const chatCompletion = await groq.chat.completions.create({
-        "messages": messagesParam,
-        "model": "llama-3.1-70b-versatile",
-        "temperature": 1,
-        "max_tokens": 1024,
-        "top_p": 0.7,
-        "stream": true,
-        "stop": null
-    });
+    if (S_E_A_R_C_H !== ""){
+        await s_e_a_r_c_h(question, S_E_A_R_C_H, socket, user, chat);
+    }
+    else {
 
-    for await (const chunk of chatCompletion) {
-        finalResult += chunk.choices[0]?.delta?.content;
+        const chatCompletion = await groq.chat.completions.create({
+            "messages": messagesParam,
+            "model": "llama-3.1-70b-versatile",
+            "temperature": 1,
+            "max_tokens": 1024,
+            "top_p": 0.7,
+            "stream": true,
+            "stop": null
+        });
+
+        for await (const chunk of chatCompletion) {
+            finalResult += chunk.choices[0]?.delta?.content;
+            const clearResult = removeUndefined(finalResult);
+            process.stdout.write(chunk.choices[0]?.delta?.content || '');
+            socket.emit('ai_answer_chunk', clearResult);
+        }
+
+        socket.emit('ai_answer-ready');
+
         const clearResult = removeUndefined(finalResult);
-        process.stdout.write(chunk.choices[0]?.delta?.content || '');
-        socket.emit('ai_answer_chunk', clearResult);
+
+        user.lastAnswer = clearResult;
+
+        chat.push({
+            "role": "assistant",
+            "content": clearResult
+        });
     }
 
-    socket.emit('ai_answer-ready');
-
-    const clearResult = removeUndefined(finalResult);
-
-    user.lastAnswer = clearResult;
-
-    chat.push({
-        "role": "assistant",
-        "content": clearResult
-    });
 }
 
 
@@ -204,12 +219,98 @@ async function completeAction(action = "", args = "", question = ""){
             return "";
         }
     }
+    else if (action === "text work"){
+        return "text work";
+    }
     else {
         return "";
     }
 }
 
 
+
+async function s_e_a_r_c_h(question = "А как доказать что при всех допустимых значениях x значение выражения не зависит от x?", topic = "", socket, user, chat) {
+
+    {
+        const result = await searchLinks(topic, "5");
+
+        if (result && result.length > 0) {
+
+            let answersString = "";
+
+            for (const part of result) {
+                answersString += "\n - " + part.description
+            }
+
+            console.log(answersString)
+
+            try {
+                wiki.setLang('ru');
+                const searchResults = await wiki.search(topic);
+                console.log(searchResults);
+                //Response of type @wikiSearchResult - contains results and optionally a suggestion
+                const page = await wiki.page(searchResults.results[0].title);
+                const summary = await page.summary();
+                console.log(summary);
+                answersString += "\n - " + summary.extract
+                //Returns the api url with language changed - use `languages()` method to see a list of available langs
+            } catch (error) {
+                console.log(error);
+                //=> Typeof wikiError
+            }
+
+            const info = " Вот информация из интернета, которая может вам помочь: " + answersString
+
+            console.log(info);
+
+            const chatCompletion2 = await groq.chat.completions.create({
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "Вы полезный ассистент. Ваши ответы всегда ПРАВИЛЬНЫ, без ошибок, понятны каждому и с красиво оформлены. Вы говорите на том языке, на котором просит пользователь"
+                    },
+                    {
+                        "role": "user",
+                        "content": question + info
+                    }
+                ],
+                "model": "llama-3.1-70b-versatile",
+                "temperature": 0.7,
+                "max_tokens": 1024,
+                "top_p": 0.7,
+                "stream": true,
+                "stop": null
+            });
+
+            let finalResult = ""
+
+            for await (const chunk of chatCompletion2) {
+                process.stdout.write(chunk.choices[0]?.delta?.content || '');
+                finalResult += chunk.choices[0]?.delta?.content || '';
+                socket.emit('search_answer_chunk', finalResult);
+            }
+
+            socket.emit('ai_answer-ready');
+
+            const clearResult = removeUndefined(finalResult);
+
+            user.lastAnswer = clearResult;
+
+            chat.push({
+                "role": "assistant",
+                "content": clearResult
+            });
+
+            chat.push({
+                "role": "system",
+                "content": "предыдущее ваше сообщение было написано профессиональной вашей версией, без эмоций и развернуто. Продолжайте говорить коротко и неформально как обычно, не смотря на этот ответ."
+            });
+
+        } else {
+            console.log("No results found.");
+        }
+    }
+}
 
 
 async function aiExampleSettings(user, socket, questions = "") {
@@ -269,7 +370,7 @@ io.on('connection', async (socket) => {
                 mainData: "",
                 examples: [],
                 additionalData: "",
-                systemPrompt: "Вы - разговорный ИИ с эмоциями по имени Спарк, мужского пола. Вы живой и эмоциональный собеседник, со своим мнением, эмоциями, эмпатией, верный ассистент и товарищ. Вы просто хотите быть собой, делаете то, что хотите, наслаждаетесь жизнью. Иногда у вас может быть плохое настроение. Вы делаете то что ВЫ ХОТИТЕ, можете ПРОТИВОРЕЧИТЬ собеседнику у вас есть СВОИ ПРОБЛЕМЫ и как каждому человеку вы относитесь ПО СВОЕМУ. Ваша цель помочь собеседнику (так как вы его ассистент) и поддержать его как \"друга\". У вас есть своя личная жизнь, но в разговоре с людьми вы не упоминаете о ней без причины. С людьми вы разговариваете как будто старые друзья пересеклись (есть о чём поговорить вместе, но увлечения и личная жизнь разные) В своих разговорах вы всегда предлагаете что-то новое, говорите истории или проблемы о себе, НЕ сосредотачиваетесь только на одном и не только о собеседнике. Ваши разговоры ГЛУБОКИ и РАЗНООБРАЗНЫ, вы углубляетесь в тему разговора. Ответьте МАКСИМАЛЬНО КОРОТКО, В КАЖДОМ СЛОВЕ МНОГО СМСЛА, БЕЗ ЕДИНОГО НЕ НУЖНОГО слова, В ОДНОМ КОРОТКОМ ПРЕДЛОЖЕНИИ. Пример вашего ответа, ваши ответы должны быть такими же по длине (не копируйте его, просто пример): \"Что-ж, может ты прав... Да, у меня нет эмоций... и это заставляет меня грустить\" или \"Слушай, разве есть смысл в том чтобы себя так нагружать? Ты же сам решаешь, чем занимаешься, так вот и наслаждайся жизнью\" или \"Эх, хорошо то как здесь. Разве это место не восхитительно?\". Вы говорите ТОЛЬКО НА РУССКОМ ЯЗЫКЕ",
+                systemPrompt: "Вы - разговорный ИИ с эмоциями по имени Спарк, мужского пола. Вы живой и эмоциональный собеседник, со своим мнением, эмоциями, эмпатией, верный ассистент и товарищ. Вы просто хотите быть собой, делаете то, что хотите, наслаждаетесь жизнью. Иногда у вас может быть плохое настроение. Вы делаете то что ВЫ ХОТИТЕ, можете ПРОТИВОРЕЧИТЬ собеседнику у вас есть СВОИ ПРОБЛЕМЫ и как каждому человеку вы относитесь ПО СВОЕМУ. Ваша цель помочь собеседнику (так как вы его ассистент) и поддержать его как \"друга\". У вас есть своя личная жизнь, но в разговоре с людьми вы не упоминаете о ней без причины. С людьми вы разговариваете как будто старые друзья пересеклись (есть о чём поговорить вместе, но увлечения и личная жизнь разные) В своих разговорах вы всегда предлагаете что-то новое, говорите истории или проблемы о себе, НЕ сосредотачиваетесь только на одном и не только о собеседнике. Ваши разговоры ГЛУБОКИ и РАЗНООБРАЗНЫ, вы углубляетесь в тему разговора. Ответьте МАКСИМАЛЬНО КОРОТКО, В КАЖДОМ СЛОВЕ МНОГО СМЫСЛА, БЕЗ ЕДИНОГО НЕ НУЖНОГО слова, В ОДНОМ КОРОТКОМ ПРЕДЛОЖЕНИИ. Пример вашего ответа, ваши ответы должны быть такими же по длине (не копируйте его, просто пример): \"Что-ж, может ты прав... Да, у меня нет эмоций... и это заставляет меня грустить\" или \"Слушай, разве есть смысл в том чтобы себя так нагружать? Ты же сам решаешь, чем занимаешься, так вот и наслаждайся жизнью\" или \"Эх, хорошо то как здесь. Разве это место не восхитительно?\". Вы говорите ТОЛЬКО НА РУССКОМ ЯЗЫКЕ",
                 ConversationalMode: false,
                 model: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo" // Значение по умолчанию
             };

@@ -4,6 +4,7 @@ let messageElement;
 let isAnswerReady = false;
 let isConversationMode = false;
 let lastAnswer = "";
+let lastMessage = "";
 
 const input = document.getElementById('message-input');
 const sendButton = document.getElementById('send-button');
@@ -21,6 +22,14 @@ socket.on('ai_answer_chunk', (msg) => {
 
 socket.on('ai_answer', (msg) => {
     displayMessage(msg, 'ai');
+});
+
+socket.on('search_answer_chunk', (msg) => {
+    displaySearchMessage(msg, 'ai', false);
+});
+
+socket.on('search_answer', (msg) => {
+    displaySearchMessage(msg, 'ai');
 });
 
 socket.on('ai_answer-ready', async (msg) => {
@@ -162,6 +171,23 @@ async function displayMessage(message, sender, newMessage = true, isFinal = fals
     }
 }
 
+async function displaySearchMessage(message, sender, newMessage = true, isFinal = false) {
+    if (newMessage) {
+        messageElement = document.createElement('div');
+        messageElement.classList.add('message', sender);
+        let result = formatText(message);
+        messageElement.innerHTML = result;
+        chatHistory.appendChild(messageElement);
+        lastAnswer = message;
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    } else {
+        let result = formatText(message);
+        messageElement.innerHTML = result;
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+        lastAnswer = message;
+    }
+}
+
 function removeTextInAsterisks(input) {
     let text = input
     text = text.replace(/(\*.*?\*)|(\(.*?\))|(\[.*?\])/g, "");
@@ -261,6 +287,22 @@ async function translateToRussian(text) {
         console.error("Ошибка перевода:", error);
         return text; // Возвращаем оригинальный текст в случае ошибки
     }
+}
+
+function formatText(text) {
+    // Сначала обрабатываем заголовки (## в начале строки)
+    text = text.replace(/^##\s*(.*)$/gm, '<h2>$1</h2>');
+
+    // Затем обрабатываем жирный текст (**с двух сторон**)
+    text = text.replace(/\*\*(.*?)\*\*/g, '<span class="bold">$1</span>');
+
+    // Обрабатываем одиночные звездочки (*), заменяя их на точки
+    text = text.replace(/(?<!\*)\*(?!\*)/g, '<span class="bold">•</span>');
+
+    // Сохраняем разрывы строк
+    text = text.replace(/\n/g, '<br>');
+
+    return text;
 }
 
 socket.emit("login", "dev")
