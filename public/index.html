@@ -1,29 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Chat</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:ital,BNCE,INFM@1,6,24&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Advent+Pro:ital,wdth,wght@0,130.1,500;1,130.1,500&display=swap" rel="stylesheet">
+    <title>Чат с ИИ</title>
 </head>
 <body>
 <div class="chat-container">
-    <div class="chat-history" id="chat-history">&nbsp;</div>
-    <div class="chat-input">
-        <input type="text" id="message-input" placeholder="enter your message...">
-        <button id="send-button">&#x27A4;</button>
+    <div id="chat-window" class="chat-window">
+        <!-- Сообщения появятся здесь -->
     </div>
-    <div id="visualizer-container" style="display:none;">
-        <canvas id="visualizer"></canvas>
-        <div id="subtitle-container" class="hidden">
-            <p id="subtitle-text"></p>
-        </div>
+    <div class="input-container">
+        <input type="text" id="user-input" placeholder="Введите текст...">
+        <button class="svg-button" id="svg-button" aria-label="My SVG Button">
+            <img src="button.svg" alt="My SVG Button" />
+        </button>
     </div>
 </div>
+
 <script src="/socket.io/socket.io.js"></script>
-<script src="script.js"></script>
+<script src="chat-scripts.js"></script>
 </body>
 </html>

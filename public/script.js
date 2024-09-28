@@ -4,7 +4,6 @@ let messageElement;
 let isAnswerReady = false;
 let isConversationMode = false;
 let lastAnswer = "";
-let lastMessage = "";
 
 const input = document.getElementById('message-input');
 const sendButton = document.getElementById('send-button');
