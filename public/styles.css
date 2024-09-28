@@ -241,6 +241,7 @@ body {
 
 .input-container {
     width: 100%; /* Динамическая ширина */
+    z-index: 5;
     align-self: center;
     max-width: 500px;
     padding: 10px;
@@ -250,7 +251,9 @@ body {
     background-size: 700% 700%; /* Подгоняем SVG по размерам контейнера */
     background-position-x: -299.5%;
     background-position-y: -310%;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); /* Тень */
+    -webkit-box-shadow: 0px -45px 53px 22px rgb(23, 23, 23);
+    -moz-box-shadow: 0px -45px 53px 22px rgb(23, 23, 23);
+    box-shadow: 0px -45px 53px 22px rgb(23, 23, 23);
 }
 
 .input-container input {
@@ -282,8 +285,8 @@ input[type="text"] {
     font-style: normal;
     font-variation-settings:
             "wdth" 130.1;
-    margin-right: -5px;
-    margin-left: 10px;
+    margin-right: -20px;
+    margin-left: -2px;
     background: linear-gradient(145deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.2) 54%, rgba(255, 255, 255, 0.04) 100%);
     box-shadow: 7px 7px 10px rgba(0, 0, 0, 0.1);
     border: 2px solid rgba(255, 255, 255, 0.46);
