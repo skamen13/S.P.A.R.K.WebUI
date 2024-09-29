@@ -219,9 +219,6 @@ async function completeAction(action = "", args = "", question = ""){
             return "";
         }
     }
-    else if (action === "text work"){
-        return "text work";
-    }
     else {
         return "";
     }
