@@ -163,19 +163,7 @@ async function query(data) {
     return result;
 }
 
-function sliceStringByWords(str, startIdx, wordCount) {
-    // Обрезаем строку начиная с указанного индекса символа
-    let slicedStr = str.slice(startIdx);
 
-    // Разбиваем строку на слова
-    let words = slicedStr.split(/\s+/).filter(word => word.length > 0);
-
-    // Обрезаем до указанного количества слов
-    let selectedWords = words.slice(0, wordCount);
-
-    // Возвращаем строку из выбранных слов
-    return selectedWords.join(' ');
-}
 
 async function pageSummary(request = "prove expression does not depend on x", Question = "How to prove that an expression does not depend on x", maxWords = 3237){
     const searchResult = await searchDuckLinks(request);
@@ -193,8 +181,6 @@ async function pageSummary(request = "prove expression does not depend on x", Qu
                 neededText = findClosestAndExtend(text, searchResult[i].description, maxWords)
             }
 
-            console.log(neededText)
-
             const chatCompletion = await groq.chat.completions.create({
                 "messages": [
                     {
@@ -203,7 +189,7 @@ async function pageSummary(request = "prove expression does not depend on x", Qu
                     },
                     {
                         "role": "user",
-                        "content": Question + " Ответьте НА РУССКОМ ЯЗЫКЕ"
+                        "content": Question + " Ответьте НА РУССКОМ ЯЗЫКЕ БЕЗ ГАЛЮЦИНАЦИЙ ИЛИ ВЫДУМАННОЙ ИНФОРМАЦИИ"
                     }
                 ],
                 "model": "llama-3.1-8b-instant",
@@ -226,4 +212,90 @@ async function pageSummary(request = "prove expression does not depend on x", Qu
     }
 }
 
-pageSummary()
+
+async function smartSearch(question = ""){
+    const chatCompletion = await groq.chat.completions.create({
+        "messages": [
+            {
+                "role": "system",
+                "content": "JSON. Вы полезный ассистент. Ваши ответы всегда ПРАВИЛЬНЫ, без ошибок, понятны каждому и с красиво оформлены. Вы говорите на том языке, на котором просит пользователь. В ответах, сами не предоставляйте информацию, которую НЕ ЗНАЕТЕ на 100%. Ваши ответы - как бы УЛУЧШЕННЫЙ google поиск в ИНТЕРНЕТЕ, но КАК КРАСИВО ОФОРМЛЕННАЯ СТАТЬЯ. В поле \"action\" напишите массив действий из списка (часть ответа), в поле \"name\" - название действия, в поле у каждого действия \"args\" напишите массив строковых аргументов к действию. ПРИМЕР КОМАНД (имён действий действий), КОТОРЫЕ ВАМ СТОИТ ИСПОЛЬЗОВАТЬ: \n" +
+                    "\n" +
+                    "\"text\" - в аргументах строка с текстом (обычный, текст, которые вы сами напишите)\n" +
+                    "\"page qe\" - в первом строковом аргументе напишите поисковой запрос в google, во втором строковом аргументе напишите вопрос на который нужно ответить (ищет в google ответ веб-страницу, затем кратко объясняет, что в ней говорится, используйте, когда НЕ ЗНАЕТЕ на 100% что-то (каждый повторяющийся запрос берутся другие страницы) (лучше использовать и перестраховаться))\n" +
+                    "\"image\" - в аргументах напишите на какую тему картинка (если вписать !page, то будет картинка из предыдущей веб-страницы page summory или page qe), сколько строковых аргументов, столько и картинок в линии (картинка из интернета на определённую тему)\n" +
+                    "\n" +
+                    "Пример вашего ответа:\n" +
+                    "\n" +
+                    "{\n" +
+                    "  \"actions\": [\n" +
+                    "    {\n" +
+                    "      \"name\": \"text\",\n" +
+                    "      \"args\": \"Вот несколько бесплатных хостингов для node.js:\"\n" +
+                    "    },\n" +
+                    "    {\n" +
+                    "      \"name\": \"page qe\",\n" +
+                    "      \"args\": [\"Free node.js hosting list\", \"Список бесплатных хостингов node.js\"]\n" +
+                    "    },\n" +
+                    "    {\n" +
+                    "      \"name\": \"image\",\n" +
+                    "      \"args\": [\"!page\"]\n" +
+                    "    },\n" +
+                    "    {\n" +
+                    "      \"name\": \"image\",\n" +
+                    "      \"args\": [\"!page\"]\n" +
+                    "    },\n" +
+                    "    {\n" +
+                    "      \"name\": \"text\",\n" +
+                    "      \"args\": [\"Выбирайте по своему усмотрению, но по данным интернета лучшим хостингом является:\"]\n" +
+                    "    },\n" +
+                    "    {\n" +
+                    "      \"name\": \"page qe\",\n" +
+                    "      \"args\": [\"Best free node.js hosting\", \"Какой лучший хостинг minecraft\"]\n" +
+                    "    }\n" +
+                    "  ]\n" +
+                    "}\n" +
+                    "\n" +
+                    "Ваши ответы должны быть поняты человеку с образованием: \"8 класс среднеобразовательной школы\""
+            },
+            {
+                "role": "user",
+                "content": "Какие лучшие бесплатные хостинги Minecraft?"
+            }
+        ],
+        "model": "llama-3.2-90b-text-preview",
+        "temperature": 0.7,
+        "max_tokens": 1024,
+        "top_p": 0.7,
+        "stream": false,
+        "response_format": {
+            "type": "json_object"
+        },
+        "stop": null
+    });
+
+    const content = JSON.parse(chatCompletion.choices[0].message.content);
+    const actions = content.actions;
+
+    let wordCount = 0;
+
+    for (const action of actions){
+        if (action.name === "page qe"){
+            wordCount++
+        }
+    }
+
+    wordCount = 6474 / wordCount;
+
+    for await (const action of actions){
+        if (action.name === "text"){
+            for (const text of action.args){
+                console.log(text)
+            }
+        }
+        else if (action.name === "page qe"){
+            await pageSummary(action.args[0], action.args[1], wordCount);
+        }
+    }
+}
+
+smartSearch("Какие лучшие бесплатные хостинги Minecraft?")

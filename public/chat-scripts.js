@@ -58,6 +58,9 @@ function sendMessage() {
 
 // Функция для добавления сообщения ИИ с анимацией загрузки
 function addAiMessage() {
+
+    if (aiMessage) aiMessage = aiMessage.style.marginBottom = "1px"
+
     const chatWindow = document.querySelector('.chat-window');
 
     // Создаём контейнер для сообщения
@@ -66,6 +69,8 @@ function addAiMessage() {
 
     // Добавляем контейнер в окно чата
     chatWindow.appendChild(messageContainer);
+
+    messageContainer.style.marginBottom = "70px"
 
     // Прокручиваем вниз, чтобы увидеть новое сообщение
     chatWindow.scrollTop = chatWindow.scrollHeight;
@@ -79,6 +84,10 @@ function addAiContent(messageContainer, htmlContent) {
     if (messageContainer.classList.contains('loading')) {
         messageContainer.classList.remove('loading'); // Убираем класс загрузки
     }
+
+    const chatWindow = document.querySelector('.chat-window');
+
+    chatWindow.scrollTop = chatWindow.scrollHeight;
 
     messageContainer.innerHTML = htmlContent;
 }

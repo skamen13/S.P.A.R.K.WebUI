@@ -168,7 +168,7 @@ async function StartAI(user, socket, question, systemQuestion = false) {
             "model": "llama-3.1-70b-versatile",
             "temperature": 1,
             "max_tokens": 1024,
-            "top_p": 0.7,
+            "top_p": 0.6,
             "stream": true,
             "stop": null
         });
