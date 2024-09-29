@@ -1,7 +1,7 @@
-const { getJson } = require("serpapi");
+const inputString = `Это пример **текста
+с переносом строки**, и вот еще **одна часть текста**.`;
 
-getJson({
-    q: "the common ratio of gp 931 is",
-    location: "Austin, Texas, United States",
-    api_key: "a793622bcb1ebda9c86764b5e85637fc99d6fd3d75c4fdb052709ab6b327236d"
-}).then(r => console.log(r));
+// Замена текста между двумя звездочками на символ '%'
+const resultString = inputString.replace(/\*\*[\s\S]*?\*\*/g, '%');
+
+console.log(resultString);

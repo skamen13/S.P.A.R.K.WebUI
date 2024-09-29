@@ -97,10 +97,12 @@ function formatText(text) {
     text = text.replace(/^##\s*(.*)$/gm, '<h2>$1</h2>');
 
     // Затем обрабатываем жирный текст (**с двух сторон**)
-    text = text.replace(/\*\*(.*?)\*\*/g, '<span class="bold">$1</span>');
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong><span class="bold">$1</span></strong>');
+
+    text = text.replace(/\$(.*?)\$/g, '<em>$1</em>');
 
     // Обрабатываем одиночные звездочки (*), заменяя их на точки
-    text = text.replace(/(?<!\*)\*(?!\*)/g, '<span class="bold">•</span>');
+    text = text.replace(/(?<!\*)\*(?!\*)/g, '<span class="bold">  •</span>');
 
     // Сохраняем разрывы строк
     text = text.replace(/\n/g, '<br>');

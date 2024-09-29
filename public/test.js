@@ -142,8 +142,6 @@ async function searchDuckLinks(query = "") {
         safeSearch: DDG.SafeSearchType.STRICT
     });
 
-    console.log(searchResults.results);
-
     return searchResults.results;
 }
 
@@ -165,51 +163,51 @@ async function query(data) {
 
 
 
-async function pageSummary(request = "prove expression does not depend on x", Question = "How to prove that an expression does not depend on x", maxWords = 3237){
+async function pageSummary(request = "prove expression does not depend on x", Question = "How to prove that an expression does not depend on x", maxWords = 3237) {
     const searchResult = await searchDuckLinks(request);
-    console.log(searchResult[0].url)
 
     try {
-        getVisibleTextFromUrl(searchResult[0].url).then(async text => {
-            let neededText = "Похожая строка не найдена"
+        let neededText = "Похожая строка не найдена";
+        let i = -1;
 
-            let i = -1
+        // Этот цикл теперь ожидает завершения асинхронного вызова внутри цикла
+        while (neededText === "Похожая строка не найдена" && i < searchResult.length) {
+            i++;
+            const text = await getVisibleTextFromUrl(searchResult[i].url);
+            neededText = findClosestAndExtend(text, searchResult[i].description, maxWords);
+        }
 
-            while (neededText === "Похожая строка не найдена" && i < searchResult.length)
-            {
-                i++;
-                neededText = findClosestAndExtend(text, searchResult[i].description, maxWords)
-            }
-
-            const chatCompletion = await groq.chat.completions.create({
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": neededText
-                    },
-                    {
-                        "role": "user",
-                        "content": Question + " Ответьте НА РУССКОМ ЯЗЫКЕ БЕЗ ГАЛЮЦИНАЦИЙ ИЛИ ВЫДУМАННОЙ ИНФОРМАЦИИ"
-                    }
-                ],
-                "model": "llama-3.1-8b-instant",
-                "temperature": 0.5,
-                "max_tokens": 1024,
-                "top_p": 0.7,
-                "stream": true,
-                "stop": null
-            });
-
-            for await (const chunk of chatCompletion) {
-                process.stdout.write(chunk.choices[0]?.delta?.content || '');
-            }
+        const chatCompletion = await groq.chat.completions.create({
+            "messages": [
+                {
+                    "role": "system",
+                    "content": neededText
+                },
+                {
+                    "role": "user",
+                    "content": Question + " Ответьте НА РУССКОМ ЯЗЫКЕ БЕЗ ГАЛЮЦИНАЦИЙ ИЛИ ВЫДУМАННОЙ ИНФОРМАЦИИ"
+                }
+            ],
+            "model": "llama-3.1-8b-instant",
+            "temperature": 0.5,
+            "max_tokens": 1024,
+            "top_p": 0.7,
+            "stream": false,
+            "stop": null
         });
 
+        // Возвращаем результат
+        return chatCompletion.choices[0].message.content;
+
     } catch (error) {
-        //socket.emit('smart_search_answer', 'Error fetching the page:' + error);
         console.error('Error fetching the page:', error);
         return "";
     }
+}
+
+
+function pause(milliseconds) {
+    return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
 
@@ -286,16 +284,24 @@ async function smartSearch(question = ""){
 
     wordCount = 6474 / wordCount;
 
+    let rawAnswer = "";
+
+    await pause(500);
+
     for await (const action of actions){
         if (action.name === "text"){
             for (const text of action.args){
-                console.log(text)
+                rawAnswer += text + "\n";
             }
         }
         else if (action.name === "page qe"){
-            await pageSummary(action.args[0], action.args[1], wordCount);
+            const pageAnswer = await pageSummary(action.args[0], action.args[1], wordCount);
+            rawAnswer+= pageAnswer + "\n";
+            await pause(500);
         }
     }
+
+    console.log(rawAnswer)
 }
 
 smartSearch("Какие лучшие бесплатные хостинги Minecraft?")

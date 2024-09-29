@@ -13,6 +13,7 @@ const Together = require("together-ai");
 const { Search , refineSearch, SearchLinks, searchLinks, answerFromURL } = require('./smart-search');
 const { aiWrite } = require("./notes");
 const { HomeworkSearch } = require("./homework");
+const { smartSearch } = require("./pro-mode");
 const {factorialDependencies} = require("mathjs");
 const wiki = require("wikipedia");
 const {gwsearch} = require("nayan-server");
@@ -219,6 +220,9 @@ async function completeAction(action = "", args = "", question = ""){
             return "";
         }
     }
+    else if (action === "text work"){
+        return "text work";
+    }
     else {
         return "";
     }
@@ -227,86 +231,23 @@ async function completeAction(action = "", args = "", question = ""){
 
 
 async function s_e_a_r_c_h(question = "А как доказать что при всех допустимых значениях x значение выражения не зависит от x?", topic = "", socket, user, chat) {
+    const finalResult = await smartSearch(question, socket);
 
-    {
-        const result = await searchLinks(topic, "5");
+    socket.emit('ai_answer-ready');
 
-        if (result && result.length > 0) {
+    const clearResult = removeUndefined(finalResult);
 
-            let answersString = "";
+    user.lastAnswer = clearResult;
 
-            for (const part of result) {
-                answersString += "\n - " + part.description
-            }
+    chat.push({
+        "role": "assistant",
+        "content": clearResult
+    });
 
-            console.log(answersString)
-
-            try {
-                wiki.setLang('ru');
-                const searchResults = await wiki.search(topic);
-                console.log(searchResults);
-                //Response of type @wikiSearchResult - contains results and optionally a suggestion
-                const page = await wiki.page(searchResults.results[0].title);
-                const summary = await page.summary();
-                console.log(summary);
-                answersString += "\n - " + summary.extract
-                //Returns the api url with language changed - use `languages()` method to see a list of available langs
-            } catch (error) {
-                console.log(error);
-                //=> Typeof wikiError
-            }
-
-            const info = " Вот информация из интернета, которая может вам помочь: " + answersString
-
-            console.log(info);
-
-            const chatCompletion2 = await groq.chat.completions.create({
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": "Вы полезный ассистент. Ваши ответы всегда ПРАВИЛЬНЫ, без ошибок, понятны каждому и с красиво оформлены. Вы говорите на том языке, на котором просит пользователь"
-                    },
-                    {
-                        "role": "user",
-                        "content": question + info
-                    }
-                ],
-                "model": "llama-3.1-70b-versatile",
-                "temperature": 0.7,
-                "max_tokens": 1024,
-                "top_p": 0.7,
-                "stream": true,
-                "stop": null
-            });
-
-            let finalResult = ""
-
-            for await (const chunk of chatCompletion2) {
-                process.stdout.write(chunk.choices[0]?.delta?.content || '');
-                finalResult += chunk.choices[0]?.delta?.content || '';
-                socket.emit('search_answer_chunk', finalResult);
-            }
-
-            socket.emit('ai_answer-ready');
-
-            const clearResult = removeUndefined(finalResult);
-
-            user.lastAnswer = clearResult;
-
-            chat.push({
-                "role": "assistant",
-                "content": clearResult
-            });
-
-            chat.push({
-                "role": "system",
-                "content": "предыдущее ваше сообщение было написано профессиональной вашей версией, без эмоций и развернуто. Продолжайте говорить коротко и неформально как обычно, не смотря на этот ответ."
-            });
-
-        } else {
-            console.log("No results found.");
-        }
-    }
+    chat.push({
+        "role": "system",
+        "content": "предыдущее ваше сообщение было написано профессиональной вашей версией, без эмоций и развернуто. Продолжайте говорить коротко и неформально как обычно, не смотря на этот ответ."
+    });
 }
 
 

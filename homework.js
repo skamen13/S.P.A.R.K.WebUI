@@ -267,4 +267,3 @@ async function HomeworkSearch(imageURL = 'https://firebasestorage.googleapis.com
 module.exports = {
     HomeworkSearch
 };
-
