@@ -13,7 +13,6 @@ const Together = require("together-ai");
 const { Search , refineSearch, SearchLinks, searchLinks, answerFromURL } = require('./smart-search');
 const { aiWrite } = require("./notes");
 const { HomeworkSearch } = require("./homework");
-const { smartSearch } = require("./pro-mode");
 const {factorialDependencies} = require("mathjs");
 const wiki = require("wikipedia");
 const {gwsearch} = require("nayan-server");
@@ -47,7 +46,7 @@ app.get('/math', (req, res) => {
 });
 
 const groq = new Groq({
-    apiKey: "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"
+    apiKey: "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"
 });
 
 async function initializeModel() {
@@ -231,7 +230,7 @@ async function completeAction(action = "", args = "", question = ""){
 
 
 async function s_e_a_r_c_h(question = "А как доказать что при всех допустимых значениях x значение выражения не зависит от x?", topic = "", socket, user, chat) {
-    const finalResult = await smartSearch(question, socket);
+    const finalResult = "типо сообщение";
 
     socket.emit('ai_answer-ready');
 

@@ -1,10 +1,9 @@
 const puppeteer = require("puppeteer");
 const Groq = require('groq-sdk');
 const DDG = require("duck-duck-scrape");
-const gis = require('async-g-i-s');
 
 const groq = new Groq({
-    apiKey: "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"
+    apiKey: "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"
 });
 
 async function getVisibleTextFromUrl(url) {
