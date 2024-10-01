@@ -22,6 +22,12 @@ socket.on('ai_answer', (msg) => {
     aiMessage = addAiMessage(); // Инициируем анимацию загрузки
 });
 
+socket.on('ai_error', (msg) => {
+    currentAnimatedElements = [];
+    aiMessage = addErrorMessage(); // Инициируем анимацию загрузки
+    addAiContent(aiMessage, formatText(msg))
+});
+
 socket.on('ai_answer-ready', async (msg) => {
     isAnswerReady = true;
     console.log("answer is ready for tts")
@@ -66,6 +72,27 @@ function addAiMessage() {
     // Создаём контейнер для сообщения
     const messageContainer = document.createElement('div');
     messageContainer.classList.add('message', 'ai-message', 'loading'); // Добавляем класс для загрузки
+
+    // Добавляем контейнер в окно чата
+    chatWindow.appendChild(messageContainer);
+
+    messageContainer.style.marginBottom = "70px"
+
+    // Прокручиваем вниз, чтобы увидеть новое сообщение
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+
+    return messageContainer; // Возвращаем контейнер для добавления контента
+}
+
+function addErrorMessage() {
+
+    if (aiMessage) aiMessage = aiMessage.style.marginBottom = "1px"
+
+    const chatWindow = document.querySelector('.chat-window');
+
+    // Создаём контейнер для сообщения
+    const messageContainer = document.createElement('div');
+    messageContainer.classList.add('message', 'error-message'); // Добавляем класс для загрузки
 
     // Добавляем контейнер в окно чата
     chatWindow.appendChild(messageContainer);

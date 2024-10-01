@@ -317,8 +317,8 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('question', async (data) => {
-        if (!currentUser) {
-            socket.emit('ai_answer', 'Данный сайт не работает отдельно от приложения. Скачайте приложение Spark AI');
+        if (true) {
+            socket.emit('ai_error', 'Извините, похоже в данный момент Spark AI не доступен из-за проведения тех. работ.');
             return;
         }
 
