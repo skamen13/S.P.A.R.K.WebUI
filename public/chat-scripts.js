@@ -28,15 +28,43 @@ socket.on('ai_error', (msg) => {
     addAiContent(aiMessage, formatText(msg))
 });
 
+// Обработчик события, когда AI сообщение готово
 socket.on('ai_answer-ready', async (msg) => {
     isAnswerReady = true;
-    console.log("answer is ready for tts")
+    console.log("Answer is ready for TTS");
+    requestSynthesis(lastAnswer)
 });
+
 
 document.getElementById("user-input").addEventListener("keypress", function(e) {
     if (e.key === 'Enter') {
         sendMessage();
     }
+});
+
+
+function requestSynthesis(text = "") {
+    const sentence = text; // Пример текста
+    const gender = 0; // Пример пола
+
+    socket.emit('synthesizeSpeech', { sentence, gender });
+}
+
+// Получение и воспроизведение аудиофайла
+socket.on('audioData', (data) => {
+    const audioData = atob(data.audio);
+    const audioBuffer = new Uint8Array(audioData.length);
+    for (let i = 0; i < audioData.length; i++) {
+        audioBuffer[i] = audioData.charCodeAt(i);
+    }
+
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    context.decodeAudioData(audioBuffer.buffer, (buffer) => {
+        const source = context.createBufferSource();
+        source.buffer = buffer;
+        source.connect(context.destination);
+        source.start(0);
+    });
 });
 
 function sendMessage() {

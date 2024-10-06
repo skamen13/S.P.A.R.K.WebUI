@@ -20,6 +20,9 @@ const {gwsearch} = require("nayan-server");
 const togetherApiKey = 'b1d33813a782e133a59ba32e103e75419915b499007c8b6ee1f34c5152dab438';
 const together = new Together({ apiKey: togetherApiKey });
 
+const API_URL = 'https://ms-ra-forwarder-lime-iota.vercel.app//api/ra'; // Укажите правильный API URL
+const BEARER_TOKEN = 'Bearer SPARK_AI_1820'; // Укажите правильный токен
+
 function removeUndefined(str) {
     const regex = /undefined/gi;
     return str.replace(regex, '');
@@ -62,6 +65,39 @@ function splitAndGroupSentences(text, groupSize = 2) {
         groupedSentences.push(group);
     }
     return groupedSentences;
+}
+
+async function synthesizeSpeech(sentence, gender) {
+    const voiceId = gender === 0 ? 'ru-RU-SvetlanaNeural' : 'ru-RU-DmitryNeural';
+
+    const ssmlText = `
+        <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="ru-RU">
+            <voice name="${voiceId}">${sentence.trim()}</voice>
+        </speak>
+    `;
+
+    try {
+        const response = await axios.post(API_URL, ssmlText, {
+            headers: {
+                'FORMAT': 'webm-24khz-16bit-mono-opus',
+                'Authorization': BEARER_TOKEN,
+                'Content-Type': 'application/ssml+xml'
+            },
+            responseType: 'arraybuffer' // Чтобы получить данные в виде бинарного массива
+        });
+
+        const audioData = response.data;
+        console.log(`Размер полученных данных от API: ${audioData.byteLength} байт`);
+
+        // Записать данные во временный файл
+        const tempFilePath = './speech.webm';
+        fs.writeFileSync(tempFilePath, audioData);
+        return tempFilePath;
+
+    } catch (error) {
+        console.error('Ошибка при запросе к API:', error);
+        throw error;
+    }
 }
 
 async function StartAI(user, socket, question, systemQuestion = false) {
@@ -295,6 +331,7 @@ io.on('connection', async (socket) => {
     console.log('A user connected');
 
     let currentUser = null;
+    let username = "";
 
     socket.on('login', (username) => {
         if (!users[username]) {
@@ -317,7 +354,7 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('question', async (data) => {
-        if (!data.includes("а́")) {
+        if (!username.includes("13")) {
             socket.emit('ai_error', 'Извините, похоже в данный момент Spark AI не доступен из-за проведения тех. работ.');
             return;
         }
@@ -364,6 +401,19 @@ io.on('connection', async (socket) => {
 
     socket.on('refine-search', async (data) => {
         await refineSearch(data.refinement, socket, currentUser)
+    });
+
+    socket.on('synthesizeSpeech', async ({ sentence, gender }) => {
+        try {
+            const audioFilePath = await synthesizeSpeech(sentence, gender);
+
+            // Чтение файла и отправка его клиенту
+            const audioData = fs.readFileSync(audioFilePath);
+            socket.emit('audioData', { audio: audioData.toString('base64') }); // Отправляем файл как base64 строку
+
+        } catch (error) {
+            console.error('Ошибка синтеза речи:', error);
+        }
     });
 
     socket.on('set-system-prompt', async (data) => {
