@@ -331,9 +331,10 @@ io.on('connection', async (socket) => {
     console.log('A user connected');
 
     let currentUser = null;
-    let username = "";
+    let Username = "";
 
     socket.on('login', (username) => {
+        Username = username;
         if (!users[username]) {
             users[username] = {
                 sparkChat: [],
@@ -354,7 +355,7 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('question', async (data) => {
-        if (!username.includes("13")) {
+        if (!Username.includes("13")) {
             socket.emit('ai_error', 'Извините, похоже в данный момент Spark AI не доступен из-за проведения тех. работ.');
             return;
         }
