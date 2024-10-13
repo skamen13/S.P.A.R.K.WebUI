@@ -13,14 +13,14 @@ const Together = require("together-ai");
 const { Search , refineSearch, SearchLinks, searchLinks, answerFromURL } = require('./smart-search');
 const { aiWrite } = require("./notes");
 const { HomeworkSearch } = require("./homework");
+const { smartSearch } = require("./pro-mode")
 const {factorialDependencies} = require("mathjs");
 const wiki = require("wikipedia");
-const {gwsearch} = require("nayan-server");
 
 const togetherApiKey = 'b1d33813a782e133a59ba32e103e75419915b499007c8b6ee1f34c5152dab438';
 const together = new Together({ apiKey: togetherApiKey });
 
-const API_URL = 'https://ms-ra-forwarder-lime-iota.vercel.app//api/ra'; // Укажите правильный API URL
+const API_URL = "https://ms-ra-forwarder-lime-iota.vercel.app//api/ra"; // Укажите правильный API URL
 const BEARER_TOKEN = 'Bearer SPARK_AI_1820'; // Укажите правильный токен
 
 function removeUndefined(str) {
@@ -49,7 +49,7 @@ app.get('/math', (req, res) => {
 });
 
 const groq = new Groq({
-    apiKey: "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"
+    apiKey: "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"
 });
 
 async function initializeModel() {
@@ -123,11 +123,21 @@ async function StartAI(user, socket, question, systemQuestion = false) {
                 "messages": [
                     {
                         "role": "system",
-                        "content": "JSON. Выдайте информацию по тому, какие действия должен делать универсальный разговорный ИИ, когда его просят о том, что пользователь просит сейчас. В поле \"action\" напишите действие из списка, в поле \"args\" напишите строковые аргументы к действию. Вот все возможные действия:\n\"none\", пустые аргументы (никакого действия)\n\"talk\", в аргументах тема разговора (ИИ просто общается, НЕ ВОПРОСЫ О МИРЕ)\n\"text work\" (Работа с текстом, написание текста с красивым оформлением, будь то письмо, реферат или любое домашнее задание, объяснение сложных тем, код. Используйте всегда когда ответить нужно НЕ РАЗГОВОРНО, А ФОРМАЛЬНО, НЕ ИСПОЛЬЗУЙТЕ ЕСЛИ НЕТ КОНКРЕТНОЙ ЗАДАЧИ)\n\"search\", в аргументах строка НА РУССКОМ запроса в интернете (обычный поиск ответа в интернете, используйте, когда спрашивают ВОПРОСЫ фактах о МИРЕ, например его можно использовать в \"А сколько лет живёт солнце?\")\n\"vision\", пустые аргументы (просмотр реальной жизни при помощи камер, используйте когда речь идёт о чём-то, чтобы понять которое нужно это увидеть)\n\"presentation\", в аргументах тема презентации на русском (создание презентации в powerpoint на нужную тему, ). ПИШИТЕ ПО ОФОРМЛЕНИЮ ТАК ЖЕ КАК В ПРИМЕРЕ. Пример вашего ВСЕГО ответа: \"\n{\n\"action\": \"presentation\",\n\"args\": \"Основание Екатеринодара \"\n}\n\""
+                        "content": "JSON. Выдайте информацию по тому, какие действия должен делать универсальный разговорный ИИ, когда его просят о том, что пользователь просит сейчас. В поле \"action\" напишите действие из списка, в поле \"args\" напишите строковые аргументы к действию. Вот все возможные действия:\n" +
+                            "\"none\", пустые аргументы (никакого действия)\n" +
+                            "\"talk\", в аргументах тема разговора (ИИ просто общается, НЕ ВОПРОСЫ О МИРЕ)\n" +
+                            "\"text work\", в аргументах краткая тема одним словом (любой НЕ РАЗГОВОРНЫЙ ответ на любой вопрос, будь то НАПИСАНИЕ ДОКЛАДА, РЕШЕНИЕ ЛЮБЫХ ЗАДАНИЙ, НАПИСАНИЕ СОЧИНЕНИЙ, ПРОДВИНУТЫЙ ПОИСК В ИНТРНЕТЕ, по сути ИСПОЛЬЗУЙТЕ ЭТО как ответ на ВОПРОСЫ фактах о МИРЕ, ЛЮБОЙ ВОПРОС, для ответа на который НУЖНО ПОДУМАТЬ)\n" +
+                            "\"vision\", пустые аргументы (просмотр реальной жизни при помощи камер, используйте когда речь идёт о чём-то, чтобы понять которое нужно это увидеть)\n" +
+                            "\"presentation\", в аргументах тема презентации на русском (создание презентации в powerpoint на нужную тему, ). ПИШИТЕ ПО ОФОРМЛЕНИЮ ТАК ЖЕ КАК В ПРИМЕРЕ. Пример вашего ВСЕГО ответа: \"\n" +
+                            "{\n" +
+                            "\"action\": \"presentation\",\n" +
+                            "\"args\": \"Основание Екатеринодара \"\n" +
+                            "}\n" +
+                            "\""
                     },
                     ...chat.slice(-2),
                 ],
-                "model": "llama3-8b-8192",
+                "model": "llama3-groq-70b-8192-tool-use-preview",
                 "temperature": 0.5,
                 "max_tokens": 1024,
                 "top_p": 0,
@@ -266,11 +276,11 @@ async function completeAction(action = "", args = "", question = ""){
 
 
 async function s_e_a_r_c_h(question = "А как доказать что при всех допустимых значениях x значение выражения не зависит от x?", topic = "", socket, user, chat) {
-    const finalResult = "типо сообщение";
+    const finalResult = await smartSearch(question, socket);
 
     socket.emit('ai_answer-ready');
 
-    const clearResult = removeUndefined(finalResult);
+    const clearResult = finalResult;
 
     user.lastAnswer = clearResult;
 
@@ -351,11 +361,14 @@ io.on('connection', async (socket) => {
             };
         }
         currentUser = users[username];
-        socket.emit('login_success', `Logged in as ${username}`);
+        let chat = currentUser.sparkChat;
+        if (currentUser.aiGender === 0) chat = currentUser.deltaChat;
+        console.log(chat)
+        socket.emit('load-messages', chat);
     });
 
     socket.on('question', async (data) => {
-        if (!Username.includes("13")) {
+        if (!Username.includes("13") && !Username.includes("dev")) {
             socket.emit('ai_error', 'Извините, похоже в данный момент Spark AI не доступен из-за проведения тех. работ.');
             return;
         }

@@ -7,12 +7,12 @@ const Groq = require('groq-sdk');
 const express = require('express');
 const { ocrSpace } = require('ocr-space-api-wrapper');
 const {convert} = require("html-to-text");
-const { gwsearch } = require("nayan-server");
+
 
 const agent = new https.Agent({ rejectUnauthorized: false });
 
 const groq = new Groq({
-    apiKey: "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"
+    apiKey: "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"
 });
 
 
@@ -79,7 +79,7 @@ async function SearchLinks(query = "", socket) {
 
 async function searchLinks(query = "", limit = "1") {
     try {
-        const data = await gwsearch(query, limit);
+        const data = "no data";
         console.log(data.data);
         return data.data;
     } catch (error) {

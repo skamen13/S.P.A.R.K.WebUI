@@ -32,9 +32,12 @@ socket.on('ai_error', (msg) => {
 socket.on('ai_answer-ready', async (msg) => {
     isAnswerReady = true;
     console.log("Answer is ready for TTS");
-    requestSynthesis(lastAnswer)
 });
 
+socket.on('load-messages', (msg) => {
+    console.log(msg)
+    populateChatFromList(msg);
+});
 
 document.getElementById("user-input").addEventListener("keypress", function(e) {
     if (e.key === 'Enter') {
@@ -145,6 +148,30 @@ function addAiContent(messageContainer, htmlContent) {
     chatWindow.scrollTop = chatWindow.scrollHeight;
 
     messageContainer.innerHTML = htmlContent;
+}
+
+function populateChatFromList(messages) {
+    const chatWindow = document.getElementById("chat-window");
+
+    messages.forEach(message => {
+        if (message.role === "user") {
+            // Создаем сообщение пользователя
+            const userMessage = document.createElement("div");
+            userMessage.classList.add("message", "user-message");
+            userMessage.innerText = message.content;
+
+            // Добавляем сообщение в окно чата
+            chatWindow.appendChild(userMessage);
+        } else if (message.role === "assistant") {
+            // Создаем сообщение помощника
+            const aiMessage = addAiMessage(); // Создаем контейнер для сообщения
+
+            // Добавляем HTML контент, отформатированный функцией formatText
+            addAiContent(aiMessage, formatText(message.content));
+        }
+        // Прокрутка вниз для каждого сообщения
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    });
 }
 
 function formatText(text) {
