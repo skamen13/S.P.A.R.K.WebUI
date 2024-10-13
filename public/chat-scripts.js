@@ -4,6 +4,7 @@ let isAnswerReady = false;
 let isConversationMode = false;
 let lastAnswer = "";
 let currentAnimatedElements = [];
+const Input = document.getElementById("user-input");
 
 let aiMessage;
 
