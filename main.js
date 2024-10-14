@@ -360,8 +360,8 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('question', async (data) => {
-        if (!Username.includes("13") && !Username.includes("dev")) {
-            socket.emit('ai_error', 'Извините, похоже в данный момент Spark AI не доступен из-за проведения тех. работ.');
+        if (!Username.includes("113")) {
+            socket.emit('ai_error', 'Err 113 - S.P.A.R.K. AI is now disabled for everyone. We\'re sorry, but it will no longer function for you until its release');
             return;
         }
 
