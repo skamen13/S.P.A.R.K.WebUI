@@ -3,6 +3,7 @@ const Groq = require('groq-sdk');
 const DDG = require("duck-duck-scrape");
 const axios = require('axios');
 const cheerio = require('cheerio');
+const https = require('https');
 const {searchLinks} = require("./smart-search");
 
 const groq = new Groq({
@@ -11,8 +12,13 @@ const groq = new Groq({
 
 async function getVisibleTextFromUrl(url) {
     try {
-        // Получение HTML страницы
-        const response = await axios.get(url);
+        // Настраиваем агент для игнорирования сертификатов
+        const agent = new https.Agent({
+            rejectUnauthorized: false
+        });
+
+        // Получение HTML страницы с отключенной проверкой сертификата
+        const response = await axios.get(url, { httpsAgent: agent });
         const html = response.data;
 
         // Загрузка HTML в cheerio для парсинга
@@ -38,10 +44,10 @@ async function getVisibleTextFromUrl(url) {
         // Извлечение текста из <body>
         const visibleText = getTextFromElement($('body'));
 
-        return visibleText || 'Похожая строка не найдена';
+        return visibleText || 'Текст не найден';
     } catch (error) {
-        console.log('Ошибка при получении текста с URL:', error);
-        return "Похожая строка не найдена";
+        console.error('Ошибка при получении текста с URL:', error);
+        return "Ошибка при получении текста";
     }
 }
 
