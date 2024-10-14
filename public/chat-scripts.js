@@ -5,6 +5,7 @@ let isConversationMode = false;
 let lastAnswer = "";
 let currentAnimatedElements = [];
 const Input = document.getElementById("user-input");
+let lastAnswerHtml = ""; // To store the last AI message's HTML
 
 let aiMessage;
 
@@ -16,6 +17,7 @@ svgButton.addEventListener('click', sendMessage);
 socket.on('ai_answer_chunk', (msg) => {
     lastAnswer = removeTextInAsterisks(msg).cleanedText
     addAiContent(aiMessage, formatText(msg))
+    lastAnswerHtml = formatText(msg);
 });
 
 socket.on('ai_answer', (msg) => {
@@ -39,6 +41,7 @@ socket.on('load-messages', (msg) => {
     console.log(msg)
     populateChatFromList(msg);
 });
+
 
 document.getElementById("user-input").addEventListener("keypress", function(e) {
     if (e.key === 'Enter') {
@@ -139,16 +142,17 @@ function addErrorMessage() {
 
 // Функция для остановки анимации загрузки и добавления HTML-контента по одному элементу
 function addAiContent(messageContainer, htmlContent) {
-    // Убираем класс загрузки при появлении первого элемента
     if (messageContainer.classList.contains('loading')) {
-        messageContainer.classList.remove('loading'); // Убираем класс загрузки
+        messageContainer.classList.remove('loading'); // Remove loading class
     }
 
-    const chatWindow = document.querySelector('.chat-window');
-
-    chatWindow.scrollTop = chatWindow.scrollHeight;
-
     messageContainer.innerHTML = htmlContent;
+    messageContainer.classList.add('editable'); // Add a class for clickable message
+
+    // Add click event to navigate to the editor with the last answer HTML
+    messageContainer.addEventListener('click', function () {
+        window.location.href = `/edit?html=${encodeURIComponent(lastAnswerHtml)}`;
+    });
 }
 
 function populateChatFromList(messages) {

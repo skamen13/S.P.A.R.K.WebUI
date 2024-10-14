@@ -40,6 +40,10 @@ app.get('/smart-search', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'smart-search.html'));
 });
 
+app.get('/edit', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'edit.html'));
+});
+
 app.get('/notes', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'notes.html'));
 });
@@ -123,9 +127,9 @@ async function StartAI(user, socket, question, systemQuestion = false) {
                 "messages": [
                     {
                         "role": "system",
-                        "content": "JSON. Выдайте информацию по тому, какие действия должен делать универсальный разговорный ИИ, когда его просят о том, что пользователь просит сейчас. В поле \"action\" напишите действие из списка, в поле \"args\" напишите строковые аргументы к действию. Вот все возможные действия:\n\"none\", пустые аргументы (никакого действия)\n\"talk\", в аргументах тема разговора (ИИ просто общается)\n\"text work\", в аргументах краткая тема одним словом (любой НЕ РАЗГОВОРНЫЙ ответ на любой вопрос, будь то НАПИСАНИЕ ДОКЛАДА, РЕШЕНИЕ ЛЮБЫХ ЗАДАНИЙ, НАПИСАНИЕ СОЧИНЕНИЙ, ПРОДВИНУТЫЙ ПОИСК В ИНТРНЕТЕ)\n\"vision\", пустые аргументы (просмотр реальной жизни при помощи камер, используйте когда речь идёт о чём-то, чтобы понять которое нужно это увидеть)\n\"presentation\", в аргументах тема презентации на русском (создание презентации в powerpoint на нужную тему, ). ПИШИТЕ ПО ОФОРМЛЕНИЮ ТАК ЖЕ КАК В ПРИМЕРЕ. Пример вашего ВСЕГО ответа: \"\n{\n\"action\": \"presentation\",\n\"args\": \"Основание Екатеринодара \"\n}\n\"",
+                        "content": "JSON. Выдайте информацию по тому, какие действия должен делать универсальный разговорный ИИ, когда его просят о том, что пользователь просит сейчас. В поле \"action\" напишите действие из списка, в поле \"args\" напишите строковые аргументы к действию. Вот все возможные действия:\n\"silence\", пустые аргументы. Используйте, когда НЕ ПОНИМАЕТЕ КОНТЕКСТ ИЛИ СМЫСЛ ВОПРОСА, если вопрос не относится к вам, или по контексту вопроса ИИ НЕ ХОЧЕТ ОТВЕЧАТЬ.\n\"talk\", в аргументах тема разговора (ИИ просто общается)\n\"text work\", в аргументах краткая тема одним словом (любой НЕ РАЗГОВОРНЫЙ ответ на любой вопрос, будь то НАПИСАНИЕ ДОКЛАДА, РЕШЕНИЕ ЛЮБЫХ ЗАДАНИЙ, НАПИСАНИЕ СОЧИНЕНИЙ, ПРОДВИНУТЫЙ ПОИСК В ИНТРНЕТЕ)\n\"vision\", пустые аргументы (просмотр реальной жизни при помощи камер, используйте когда речь идёт о чём-то, чтобы понять которое нужно это увидеть)\n\"presentation\", в аргументах тема презентации на русском (создание презентации в powerpoint на нужную тему, ). ПИШИТЕ ПО ОФОРМЛЕНИЮ ТАК ЖЕ КАК В ПРИМЕРЕ. Пример вашего ВСЕГО ответа: \"\n{\n\"action\": \"presentation\",\n\"args\": \"Основание Екатеринодара \"\n}\n\""
                     },
-                    ...chat.slice(-2),
+                    ...chat.slice(-3),
                 ],
                 "model": "llama3-groq-70b-8192-tool-use-preview",
                 "temperature": 0.5,
@@ -140,7 +144,7 @@ async function StartAI(user, socket, question, systemQuestion = false) {
 
             // Пробуем разобрать ответ и выполнить действие
             const content = JSON.parse(chatCompletion.choices[0].message.content);
-            const actionParams = await completeAction(content.action, content.args, question);
+            actionParams = await completeAction(content.action, content.args, question);
 
             if (actionParams === "text work"){
                 S_E_A_R_C_H = content.args;
@@ -154,7 +158,7 @@ async function StartAI(user, socket, question, systemQuestion = false) {
 
     }
 
-    if (actionParams) {
+    if (actionParams && actionParams !== "text work" && actionParams !== "...") {
         chat.push({
             "role": "system",
             "content": actionParams
@@ -164,7 +168,11 @@ async function StartAI(user, socket, question, systemQuestion = false) {
     let messagesParam = [
         {
             "role": "system",
-            "content": user.systemPrompt + "\n\n" + user.mainData
+            "content": "С вами говорит Максим (ваш создатель. Возраст 14 лет.)"
+        },
+        {
+            "role": "system",
+            "content": user.systemPrompt
         },
         ...chat,
     ];
@@ -197,8 +205,20 @@ async function StartAI(user, socket, question, systemQuestion = false) {
     if (S_E_A_R_C_H !== ""){
         await s_e_a_r_c_h(question, S_E_A_R_C_H, socket, user, chat);
     }
+    else if (actionParams === "..."){
+        if (user.lastAnswer === "..."){
+            chat.pop();
+            chat.pop();
+        }
+        chat.push({
+            "role": "assistant",
+            "content": "[вы игнорируете]"
+        });
+        socket.emit('ai_answer_chunk', "...");
+        socket.emit('ai_answer-ready');
+        user.lastAnswer = "...";
+    }
     else {
-
         const chatCompletion = await groq.chat.completions.create({
             "messages": messagesParam,
             "model": "llama-3.1-70b-versatile",
@@ -227,33 +247,15 @@ async function StartAI(user, socket, question, systemQuestion = false) {
             "content": clearResult
         });
     }
-
 }
 
 
 
 async function completeAction(action = "", args = "", question = ""){
     console.log(action, args)
-    if (action === "research" || action === "search")
+    if (action === "silence")
     {
-        const result = await searchLinks(args, "5");
-
-        if (result && result.length > 0) {
-
-            let answersString = "";
-
-            for (const part of result)
-            {
-                answersString += "\n - " + part.description
-            }
-
-            console.log(answersString)
-
-            return "Вот ответы на вопрос пользователя, который вы нашли в интернете: " + answersString
-        } else {
-            console.log("No results found.");
-            return "";
-        }
+        return "..."
     }
     else if (action === "text work"){
         return "text work";
@@ -281,7 +283,7 @@ async function s_e_a_r_c_h(question = "А как доказать что при 
 
     chat.push({
         "role": "system",
-        "content": "предыдущее ваше сообщение было написано профессиональной вашей версией, без эмоций и развернуто. Продолжайте говорить коротко и неформально как обычно, не смотря на этот ответ."
+        "content": "предыдущее ваше сообщение было констатацией фактов, которые вы нашли в интернете, без эмоций и развернуто. Можете делать выводы исходя из этой информации. Продолжайте говорить коротко и неформально как обычно, не смотря на этот ответ."
     });
 }
 

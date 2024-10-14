@@ -1,54 +1,47 @@
 const puppeteer = require("puppeteer");
 const Groq = require('groq-sdk');
 const DDG = require("duck-duck-scrape");
+const axios = require('axios');
+const cheerio = require('cheerio');
+const {searchLinks} = require("./smart-search");
 
 const groq = new Groq({
     apiKey: "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"
 });
 
 async function getVisibleTextFromUrl(url) {
-    let browser;
-
     try {
-        // Запуск Puppeteer в headless-режиме на сервере
-        browser = await puppeteer.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu']
-        });
+        // Получение HTML страницы
+        const response = await axios.get(url);
+        const html = response.data;
 
-        const page = await browser.newPage();
+        // Загрузка HTML в cheerio для парсинга
+        const $ = cheerio.load(html);
 
-        // Переход по URL
-        await page.goto(url, { waitUntil: 'networkidle2' });
+        // Функция для извлечения видимого текста
+        const getTextFromElement = (element) => {
+            let visibleText = '';
 
-        // Получение видимого текста
-        const visibleText = await page.evaluate(() => {
-            let body = document.querySelector('body');
-            let texts = [];
-
-            function getTextFromNode(node) {
-                // Получаем текст только из видимых узлов
-                if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim() !== '') {
-                    texts.push(node.nodeValue.trim());
-                } else if (node.nodeType === Node.ELEMENT_NODE && window.getComputedStyle(node).display !== 'none') {
-                    for (let child of node.childNodes) {
-                        getTextFromNode(child);
-                    }
+            // Обходим каждый элемент и собираем текст, исключая невидимые элементы
+            element.each((i, el) => {
+                const $el = $(el);
+                // Проверяем, является ли элемент видимым
+                if ($el.css('display') !== 'none' && $el.css('visibility') !== 'hidden') {
+                    // Добавляем текст из этого элемента
+                    visibleText += $el.text().trim() + ' ';
                 }
-            }
+            });
 
-            getTextFromNode(body);
-            return texts.join(' ').trim();
-        });
+            return visibleText.trim();
+        };
 
-        return visibleText;
+        // Извлечение текста из <body>
+        const visibleText = getTextFromElement($('body'));
+
+        return visibleText || 'Похожая строка не найдена';
     } catch (error) {
-        console.error('Ошибка при получении текста с URL:', error);
+        console.log('Ошибка при получении текста с URL:', error);
         return "Похожая строка не найдена";
-    } finally {
-        if (browser) {
-            await browser.close();
-        }
     }
 }
 
@@ -119,6 +112,27 @@ async function searchDuckLinks(query = "") {
     return searchResults.results;
 }
 
+async function basicSearch(query = ""){
+    const result = await searchDuckLinks(query);
+
+    if (result && result.length > 0) {
+
+        let answersString = "";
+
+        for (const part of result)
+        {
+            answersString += "\n - " + part.description
+        }
+
+        console.log(answersString)
+
+        return "Вот ответы на вопрос \"" + query + "\", который вы нашли в интернете: " + answersString
+    } else {
+        console.log("No results found.");
+        return "";
+    }
+}
+
 async function pageSummary(request = "prove expression does not depend on x", Question = "How to prove that an expression does not depend on x", maxWords = 3237, socket) {
     const searchResult = await searchDuckLinks(request);
 
@@ -155,7 +169,6 @@ async function pageSummary(request = "prove expression does not depend on x", Qu
         let finalAnswer = "";
 
         for await (const chunk of chatCompletion) {
-            process.stdout.write(chunk.choices[0]?.delta?.content || '');
             finalAnswer += chunk.choices[0]?.delta?.content || '';
             socket.emit('ai_answer_chunk', "## Найден ответ на вопрос в интернете:\n" + finalAnswer);
         }
@@ -253,11 +266,15 @@ async function smartSearch(question = "", socket){
                 rawAnswer += text + "\n";
             }
         }
+        else if (action.name === "basic info"){
+            const pageAnswer = await basicSearch(action.args[0]);
+            rawAnswer += pageAnswer + "\n";
+            socket.emit('ai_answer_chunk', "## Ответ готовится...\n" + rawAnswer);
+        }
         else if (action.name === "research"){
             const pageAnswer = await pageSummary(action.args[0], action.args[1], wordCount, socket);
             lastPageSearch = action.args[0];
             rawAnswer+= pageAnswer + "\n";
-            console.log(rawAnswer)
             socket.emit('ai_answer_chunk', "## Ответ готовится...\n" + rawAnswer);
             await pause(500);
         }
@@ -369,7 +386,6 @@ async function smartSearch(question = "", socket){
     let finalAnswer = "";
 
     for await (const chunk of finalChatCompletion) {
-        process.stdout.write(chunk.choices[0]?.delta?.content || '');
         finalAnswer+= chunk.choices[0]?.delta?.content || '';
         socket.emit('ai_answer_chunk', finalAnswer);
     }
