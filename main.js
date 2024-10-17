@@ -360,7 +360,7 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('question', async (data) => {
-        if (!Username.includes("113")) {
+        if (!Username.includes("113") && !Username.includes("dev")) {
             socket.emit('ai_error', 'Err 113 - S.P.A.R.K. AI is now disabled for everyone. We\'re sorry, but it will no longer function for you until its release');
             return;
         }
