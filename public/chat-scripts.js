@@ -4,8 +4,8 @@ let isAnswerReady = false;
 let isConversationMode = false;
 let lastAnswer = "";
 let currentAnimatedElements = [];
-const Input = document.getElementById("user-input");
 let lastAnswerHtml = ""; // To store the last AI message's HTML
+let lastSmartAnswer = "";
 
 let aiMessage;
 
@@ -18,6 +18,18 @@ socket.on('ai_answer_chunk', (msg) => {
     lastAnswer = removeTextInAsterisks(msg).cleanedText
     addAiContent(aiMessage, formatText(msg))
     lastAnswerHtml = formatText(msg);
+});
+
+
+socket.on('smart_answer_chunk', (msg) => {
+    lastSmartAnswer = formatText(msg);
+    updateExpandedContent(lastSmartAnswer);
+});
+
+socket.on('notification', (msg) => {
+    const icon = msg.icon;
+    const text = msg.text;
+    showNotification(text, icon);
 });
 
 socket.on('ai_answer', (msg) => {
@@ -35,6 +47,10 @@ socket.on('ai_error', (msg) => {
 socket.on('ai_answer-ready', async (msg) => {
     isAnswerReady = true;
     console.log("Answer is ready for TTS");
+});
+
+socket.on('smart_answer_ready', async (msg) => {
+    convertLastAiMessageToHiddenHtml(lastSmartAnswer);
 });
 
 socket.on('load-messages', (msg) => {
@@ -119,6 +135,45 @@ function addAiMessage() {
     return messageContainer; // Возвращаем контейнер для добавления контента
 }
 
+function convertLastAiMessageToHiddenHtml(hiddenHtml) {
+    const chatWindow = document.getElementById("chat-window");
+
+    // Находим последнее сообщение ИИ
+    const aiMessages = chatWindow.getElementsByClassName('ai-message');
+    if (aiMessages.length === 0) return;  // Нет сообщений ИИ
+
+    const lastAiMessage = aiMessages[aiMessages.length - 1];
+
+    // Проверяем, есть ли уже скрытый текст
+    if (lastAiMessage.querySelector('.hidden-html')) {
+        console.warn("Это сообщение уже содержит скрытый HTML.");
+        return;
+    }
+
+    // Создаем скрытый HTML элемент
+    const hiddenHtmlElement = document.createElement('span');
+    hiddenHtmlElement.classList.add('hidden-html');
+    hiddenHtmlElement.style.display = 'none';  // Изначально скрыто
+    hiddenHtmlElement.innerHTML = hiddenHtml;
+    lastAiMessage.appendChild(hiddenHtmlElement);
+
+    // Создаем и добавляем SVG кнопку
+    const button = document.createElement('button');
+    button.classList.add('svg-button', 'ai-button');
+    button.innerHTML = `<img src="edit.svg" alt="Show hidden text" />`;
+    lastAiMessage.appendChild(button);
+
+    // Добавляем обработчик для кнопки
+    button.addEventListener('click', () => {
+        console.log(hiddenHtml);  // Воспроизводим скрытый текст
+        expandNotification(hiddenHtml, "smart_search.svg")
+    });
+
+    console.log("Последнее сообщение ИИ обновлено скрытым HTML.");
+}
+
+
+
 function addErrorMessage() {
 
     if (aiMessage) aiMessage = aiMessage.style.marginBottom = "1px"
@@ -147,18 +202,15 @@ function addAiContent(messageContainer, htmlContent) {
     }
 
     messageContainer.innerHTML = htmlContent;
-    messageContainer.classList.add('editable'); // Add a class for clickable message
 
-    // Add click event to navigate to the editor with the last answer HTML
-    messageContainer.addEventListener('click', function () {
-        window.location.href = `/edit?html=${encodeURIComponent(lastAnswerHtml)}`;
-    });
 }
 
 function populateChatFromList(messages) {
     const chatWindow = document.getElementById("chat-window");
 
-    messages.forEach(message => {
+    for (let i = 0; i < messages.length; i++) {
+        const message = messages[i];
+
         if (message.role === "user") {
             // Создаем сообщение пользователя
             const userMessage = document.createElement("div");
@@ -173,11 +225,29 @@ function populateChatFromList(messages) {
 
             // Добавляем HTML контент, отформатированный функцией formatText
             addAiContent(aiMessage, formatText(message.content));
+
+            // Проверяем, есть ли следующее сообщение от системы
+            if (i + 1 < messages.length && messages[i + 1].role === "system") {
+                const systemMessage = messages[i + 1];
+
+                // Проверяем, начинается ли сообщение с "Ответ из поиска:\n"
+                if (systemMessage.content.startsWith("Ответ из поиска:\n")) {
+                    const hiddenHtmlContent = systemMessage.content.replace("Ответ из поиска:\n", "");
+                    const formattedHiddenHtml = formatText(hiddenHtmlContent);
+
+                    // Преобразуем последнее сообщение ИИ в сообщение со скрытым HTML
+                    convertLastAiMessageToHiddenHtml(formattedHiddenHtml);
+
+                    // Пропускаем следующее сообщение, так как оно обработано
+                    i++;
+                }
+            }
         }
         // Прокрутка вниз для каждого сообщения
         chatWindow.scrollTop = chatWindow.scrollHeight;
-    });
+    }
 }
+
 
 function formatText(text) {
     // Сначала обрабатываем заголовки (## в начале строки)
@@ -207,6 +277,68 @@ function removeTextInAsterisks(input) {
     return {
         cleanedText: text,
     };
+}
+
+function showNotification(message, iconSrc) {
+    const notification = document.getElementById('notification');
+    const notificationText = notification.querySelector('.notification-text');
+    const notificationIcon = notification.querySelector('.notification-icon');
+
+    // Изменяем содержимое уведомления
+    notificationText.textContent = message;
+    if (iconSrc) {
+        notificationIcon.src = iconSrc;
+    }
+
+    // Показываем уведомление
+    notification.classList.remove('hidden');
+    notification.classList.add('visible');
+
+    // Автоматическое скрытие уведомления через 5 секунд
+    setTimeout(() => {
+        notification.classList.remove('visible');
+        notification.classList.add('hidden');
+    }, 5000);
+
+    // Добавляем обработчик на нажатие для открытия развернутого меню
+    notification.addEventListener('click', () => expandNotification(message, iconSrc));
+}
+
+function expandNotification(message, iconSrc) {
+    const expandedNotification = document.getElementById('expanded-notification');
+    const blurBackground = document.getElementById('blur-background');
+    const expandedText = expandedNotification.querySelector('.expanded-text');
+    const expandedIcon = expandedNotification.querySelector('.expanded-icon');
+
+    // Устанавливаем иконку и текст в развернутом меню
+    expandedText.innerHTML = `${message}`;
+    expandedIcon.src = iconSrc;
+
+    // Плавное раскрытие меню и фона
+    expandedNotification.classList.remove('hidden');
+    expandedNotification.classList.add('visible');
+    blurBackground.classList.remove('hidden');
+    blurBackground.classList.add('visible');
+
+    // Закрытие при клике на крестик
+    document.querySelector('.close-btn').addEventListener('click', closeExpandedNotification);
+}
+
+function closeExpandedNotification() {
+    const expandedNotification = document.getElementById('expanded-notification');
+    const blurBackground = document.getElementById('blur-background');
+
+    // Плавное закрытие меню и фона
+    expandedNotification.classList.remove('visible');
+    expandedNotification.classList.add('hidden');
+    blurBackground.classList.remove('visible');
+    blurBackground.classList.add('hidden');
+}
+
+// Пример изменения HTML-содержимого в развернутом меню
+function updateExpandedContent(htmlContent) {
+    const expandedText = document.querySelector('.expanded-text');
+    expandedText.innerHTML = htmlContent;
 }
 
 socket.emit("login", "dev")

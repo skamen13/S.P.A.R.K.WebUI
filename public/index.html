@@ -21,6 +21,26 @@
         </button>
     </div>
 </div>
+<div id="notification" class="notification hidden">
+    <img src="icon.svg" alt="Icon" class="notification-icon">
+    <div class="notification-text">Here is your custom message!</div>
+</div>
+
+<!-- Развернутое меню -->
+<div id="expanded-notification" class="expanded-notification hidden">
+    <button class="close-btn">
+        <img src="close-icon.svg" alt="Close" class="close-icon">
+    </button>
+    <div class="expanded-content">
+        <img src="icon.svg" alt="Icon" class="expanded-icon">
+        <div class="expanded-text">Detailed content here...</div>
+    </div>
+</div>
+
+
+<!-- Размытие фона -->
+<div id="blur-background" class="blur-background hidden"></div>
+
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="chat-scripts.js"></script>

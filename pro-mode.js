@@ -176,7 +176,7 @@ async function pageSummary(request = "prove expression does not depend on x", Qu
 
         for await (const chunk of chatCompletion) {
             finalAnswer += chunk.choices[0]?.delta?.content || '';
-            socket.emit('ai_answer_chunk', "## Найден ответ на вопрос в интернете:\n" + finalAnswer);
+            socket.emit('smart_answer_chunk', "## Найден ответ на вопрос в интернете:\n" + finalAnswer);
         }
 
         // Возвращаем результат
@@ -254,8 +254,6 @@ async function smartSearch(question = "", socket){
         }
     }
 
-    socket.emit('ai_answer_chunk', basicAnswer);
-
     wordCount = 5474 / wordCount;
 
     let rawAnswer = "";
@@ -275,13 +273,14 @@ async function smartSearch(question = "", socket){
         else if (action.name === "basic info"){
             const pageAnswer = await basicSearch(action.args[0]);
             rawAnswer += pageAnswer + "\n";
-            socket.emit('ai_answer_chunk', "## Ответ готовится...\n" + rawAnswer);
+            socket.emit('smart_answer_chunk', "## Ответ готовится...\n" + rawAnswer);
+            await pause(500);
         }
         else if (action.name === "research"){
             const pageAnswer = await pageSummary(action.args[0], action.args[1], wordCount, socket);
             lastPageSearch = action.args[0];
             rawAnswer+= pageAnswer + "\n";
-            socket.emit('ai_answer_chunk', "## Ответ готовится...\n" + rawAnswer);
+            socket.emit('smart_answer_chunk', "## Ответ готовится...\n" + rawAnswer);
             await pause(500);
         }
     }
@@ -393,7 +392,7 @@ async function smartSearch(question = "", socket){
 
     for await (const chunk of finalChatCompletion) {
         finalAnswer+= chunk.choices[0]?.delta?.content || '';
-        socket.emit('ai_answer_chunk', finalAnswer);
+        socket.emit('smart_answer_chunk', finalAnswer);
     }
 
     return finalAnswer;
